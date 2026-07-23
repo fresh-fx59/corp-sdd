@@ -1,0 +1,5 @@
+pre-commit:
+  parallel: true
+  commands:
+    docs-disposer:
+      run: bash tools/verify-docs.sh
