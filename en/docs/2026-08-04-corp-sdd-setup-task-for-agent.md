@@ -56,6 +56,44 @@ npx @fission-ai/openspec store register /abs/path/to/system-store --id corp-stor
 Do this on every dev machine and every self-hosted CI agent. VERIFY: `npx @fission-ai/openspec store list`
 shows `corp-store` when run from an unrelated directory.
 
+## Step 3b — Adopt the clones that already exist, then clean up
+
+Machines that have done this work already have clones in `clones/`. **Do not delete them and
+start over.** `sync-repos.sh` adopts a clone that is already on disk: it proves the directory
+is the repo `repos.json` names, then fast-forwards it. Local work is never overwritten.
+
+1. Update `tools/sync-repos.sh` to the version in the implementation guide §10 — it gained the
+   adoption checks, stray reporting and `--prune`.
+2. Run it and read every line. Fix each 🔴 with the one-line command it prints (wrong `origin`,
+   a directory that is not a clone, a clone with no `origin`), then re-run until none are left.
+   ```bash
+   bash tools/sync-repos.sh
+   ```
+3. Clean up what earlier attempts left behind:
+   ```bash
+   bash tools/sync-repos.sh --prune --dry-run   # preview; deletes nothing
+   bash tools/sync-repos.sh --prune             # deletes only strays with no local work
+   ```
+   It refuses to delete anything holding uncommitted changes, unpushed commits or stashes.
+4. **The clean-up that matters most: a clone INSIDE the store's own tree.** OpenSpec resolves
+   its root by walking up (Step 2), so a nested clone writes its specs into the store. Move it
+   to the sibling `clones/` directory and delete the nested copy.
+   ```bash
+   grep -n clones_dir repos.json                      # must be "../clones" — sibling, not child
+   find . -path ./.git -prune -o -name .git -print    # must print NOTHING inside the store
+   ```
+5. VERIFY (paste all three into `IMPLEMENTATION-LOG.md`):
+   ```bash
+   bash tools/sync-repos.sh          # "✓ sync done", no 🔴
+   ls clones/                        # exactly the repos listed in repos.json
+   node tools/aggregate-index.mjs    # catalog rebuilds from the adopted clones
+   ```
+
+**How the team keeps them updated afterwards:** `bash tools/sync-repos.sh` — before any
+cross-repo change, and nightly in CI. Idempotent and fast-forward-only; a clone with local work
+is reported and skipped, never clobbered. After editing `repos.json`, run `--prune --dry-run`
+to see what the change orphaned.
+
 ## Step 4 — Declare the store reference in consumer repos
 
 Only in repos that consume a cross-repo contract. **Append** to the repo's existing
