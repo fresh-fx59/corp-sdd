@@ -14,20 +14,27 @@
 5. `docs/2026-07-18-corp-sdd-team-playbook.md` — руководство по ролям; выдайте каждой роли её раздел на онбординге в Фазе 1.
 6. `docs/corp-sdd-transition-project-log.md` — журнал решений / происхождение (опциональный глубокий контекст).
 
+**Поправки (2026-08-04/05) — читать после шести выше, они отменяют часть написанного там:**
+7. `docs/2026-08-04-openspec-root-resolution-fix.md` — OpenSpec ищет свой корень **вверх** по дереву и **не** останавливается на границе `.git`, поэтому спеки молча уезжают в чужой репозиторий; правильное имя пакета — `@fission-ai/openspec` (голый `openspec` — чужая пустышка 0.0.0). Добавляет `references:` и линт против дублирования контракта.
+8. `docs/2026-08-04-corp-sdd-cross-repo-fanout.md` — кросс-репозиторные истории: родительская история **и есть** тикет контракта в сторе, по одному дочернему тикету на репозиторий, всё делает одна расширенная `corp-spec`. Отменяет шаги 1–4 §D из harness pack.
+9. `docs/2026-08-04-corp-sdd-setup-task-for-agent.md` — исполняемая задача настройки: девять шагов, в каждом VERIFY, реальный вывод которого нужно вставить.
+10. `docs/2026-08-04-corp-sdd-zoekt-setup.md` — runbook по кросс-репозиторному поиску кода (поиск `sym:` молча умирает без `universal-ctags`).
+11. `docs/2026-08-05-svodka-izmeneniy.md` — сводка изменений за 2026-08-04/05 одним файлом.
+
 ## Что в наборе
 - **scripts/tools/** — инструментарий диспозера и индекса (Node без зависимостей + bash), протестирован на синтетическом пилотном репозитории + сторе:
-  - spoke-репозитории: `corp-lint.mjs`, `gen-index.mjs`, `verify-docs.sh`
-  - системный стор: `aggregate-index.mjs`, `sync-repos.sh`
+  - spoke-репозитории: `corp-lint.mjs`, `gen-index.mjs`, `verify-docs.sh`, `check-openspec-root.sh`, `check-contract-split-brain.mjs`, `check-git-naming.sh`
+  - системный стор: `aggregate-index.mjs`, `sync-repos.sh`, `index-all.sh`
 - **commands/** — тела 7 команд `corp-*` (spec · plan · implement · review · test-plan · autotest · archive). **TEMPLATE** — установите в каталог команд порта (руководство §0a P2); замените синтаксис вызова `corp-*` под ваш порт.
 - **skills/** — 5 вендоренных skills (tdd · verification · debugging · code-review · drill-down). **TEMPLATE** — установите по P3 (или встройте прямо в команды, если в порте нет skills; см. harness pack §E).
-- **templates/** — файловые шаблоны: `research.md`, `adr.md`, `store-contract.md`, `port-facts.md`.
+- **templates/** — файловые шаблоны: `research.md`, `adr.md`, `store-contract.md`, `port-facts.md`, `conventions-branching.md` (конвенция веток и сообщений коммитов, которую проверяет `check-git-naming.sh`).
 - **config/** — `repos.json.example` (манифест клонов стора), `lefthook.yml.example` (pre-commit-хук).
-- **slides/** — `deck-ru-leadership.html` (для руководства), `deck-ru-team.html` (для команды). Самодостаточны; открываются в любом браузере (← → / пробел, T — тема, F — во весь экран, Ctrl/Cmd+P → PDF). Редактируемый исходник в `slides/src/` (`node build-decks.mjs leadership team`).
+- **slides/** — `deck-ru-talk5.html` (доклад о решении на 5 минут, 10 слайдов — он же опубликован на https://fresh-fx59.github.io/corp-sdd/), `deck-ru-leadership.html` (для руководства), `deck-ru-team.html` (для команды). Самодостаточны; открываются в любом браузере (← → / пробел, T — тема, F — во весь экран, Ctrl/Cmd+P → PDF). Редактируемый исходник в `slides/src/` (`node build-decks.mjs leadership team`).
 
 ## Быстрый старт (из руководства)
 1. **СНАЧАЛА §0a port discovery** (полдня) — прощупайте P1–P8, запишите ответы в `port-facts.md` (шаблон приложен) в системном сторе. Это параметризует всё, что ниже.
 2. **Создайте системный стор** (руководство §1): `git init system-store`; добавьте `config/repos.json.example` → `repos.json`; положите `aggregate-index.mjs` + `sync-repos.sh`; запустите их.
-3. **Онбординг 2–3 пилотных репозиториев** (руководство §2): `npx openspec init --tools <your-agent>` (закрепите версию); добавьте `corp-lint.mjs` + `gen-index.mjs` + `verify-docs.sh` в `tools/`; подключите lefthook (`lefthook.yml.example`); закоммитьте `openspec/repo.txt`.
+3. **Онбординг 2–3 пилотных репозиториев** (руководство §2): `npx @fission-ai/openspec init --tools <your-agent>` (закрепите версию); добавьте `corp-lint.mjs` + `gen-index.mjs` + `verify-docs.sh` в `tools/`; подключите lefthook (`lefthook.yml.example`); закоммитьте `openspec/repo.txt`.
 4. **Вендорьте команды + skills** (руководство §5 + harness pack §A/§B, порядок установки §E): сначала skills, потом команды.
 5. **Прогоните поток дымовым тестом** на одной реальной небольшой истории (руководство §6), затем чек-лист выхода из Фазы 0 (руководство §8) → Фаза 1.
 

@@ -19,12 +19,19 @@ const THEMES = {
     light: { bg:'#E6EEEC', stage:'#FBFDFD', ink:'#10201C', muted:'#4E6560', faint:'#8AA39C', line:'#DDE9E6', accent:'#0E9488', accent2:'#0B6E63', accentSoft:'rgba(14,148,136,0.10)', accentInk:'#ffffff' },
     dark:  { bg:'#060B0A', stage:'#0F1614', ink:'#E7EFEC', muted:'#92A8A2', faint:'#5C726C', line:'#1E2A27', accent:'#3FD3C0', accent2:'#6FE0D2', accentSoft:'rgba(63,211,192,0.15)', accentInk:'#05100D' },
   },
+  // talk5 — the 5-minute solution talk. Rust accent on cool slate: the deck's subject is a
+  // system that REJECTS bad writes, so the accent colour is the colour of a rejection.
+  talk5: {
+    light: { bg:'#E9EAEC', stage:'#FCFBFA', ink:'#17161A', muted:'#5B5A63', faint:'#8E8D97', line:'#E3E1E4', accent:'#B4462F', accent2:'#8C3323', accentSoft:'rgba(180,70,47,0.10)', accentInk:'#ffffff' },
+    dark:  { bg:'#0B0C0E', stage:'#14151A', ink:'#ECEAE8', muted:'#9C9AA3', faint:'#66646D', line:'#26262C', accent:'#F2836A', accent2:'#F7A38F', accentSoft:'rgba(242,131,106,0.15)', accentInk:'#150B08' },
+  },
 }
 THEMES._sample = THEMES.leadership
 
 const META = {
   leadership: { title:'Переход на SDD с ИИ-агентами', deckLabel:'Для руководства', docTitle:'SDD — презентация для руководства' },
   team:       { title:'Как мы теперь работаем: SDD', deckLabel:'Для команды',      docTitle:'SDD — онбординг команды' },
+  talk5:      { title:'Corp SDD — решение', deckLabel:'5 минут', docTitle:'Corp SDD — решение за 5 минут' },
   _sample:    { title:'Sample — все layout', deckLabel:'Проверка', docTitle:'Sample deck' },
 }
 

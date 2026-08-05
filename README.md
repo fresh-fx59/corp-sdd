@@ -30,18 +30,29 @@ commands, scripts, and the slide structure are the same in both.
 
 ## What's in each tree
 
-- **`docs/`** — the six SDD docs, in read order: handoff → design → implementation guide →
-  harness pack → team playbook → project log. Start with `README.md` inside the tree.
-- **`scripts/tools/`** — five tested, zero-dependency scripts (Node + bash): the disposer
-  (`verify-docs.sh`, `corp-lint.mjs`), the per-repo index generator (`gen-index.mjs`), and
-  the system-store aggregator + sync (`aggregate-index.mjs`, `sync-repos.sh`).
+- **`docs/`** — the SDD docs, in read order: handoff → design → implementation guide →
+  harness pack → team playbook → project log, followed by the 2026-08-04/05 amendments
+  (OpenSpec root resolution, cross-repo fan-out, the executable setup task, code search).
+  Start with `README.md` inside the tree.
+- **`scripts/tools/`** — nine tested, zero-dependency scripts (Node + bash): the disposer
+  (`verify-docs.sh`, `corp-lint.mjs`, `check-contract-split-brain.mjs`), the per-repo index
+  generator (`gen-index.mjs`), the guards (`check-openspec-root.sh`, `check-git-naming.sh`),
+  and the system-store aggregator + sync + search index (`aggregate-index.mjs`,
+  `sync-repos.sh`, `index-all.sh`).
 - **`commands/` · `skills/` · `templates/`** — seven `corp-*` command bodies, five vendored
   skills, and file templates. **These are templates** — adapt the command/skill invocation
   syntax to your own agent-CLI port before relying on them.
 - **`config/`** — example `repos.json` (store clone manifest) and `lefthook.yml`
   (pre-commit hook).
-- **`slides/`** — two self-contained onboarding decks (Russian): one for leadership, one
-  for the team. Open in any browser; editable source in `slides/src/`.
+- **`slides/`** — three self-contained decks (Russian): the 5-minute solution talk, one for
+  leadership, one for the team. Open in any browser; editable source in `slides/src/`.
+
+## The 5-minute talk, in your browser
+
+**https://fresh-fx59.github.io/corp-sdd/** — the whole solution in ten slides: the story
+flow, what appears on disk, the checks that reject bad writes, the single cross-repo
+contract, the honest limits, and the hour it takes to set up per repo.
+(← → to move, `T` for theme, `F` for full screen, Ctrl/Cmd+P for PDF.)
 
 ## Anonymization
 
