@@ -3,3 +3,14 @@ pre-commit:
   commands:
     docs-disposer:
       run: bash tools/verify-docs.sh
+
+commit-msg:
+  commands:
+    message-convention:
+      # {1} is the commit-message file lefthook passes through.
+      run: bash tools/check-git-naming.sh --commit-msg {1}
+
+pre-push:
+  commands:
+    branch-convention:
+      run: bash tools/check-git-naming.sh --branch

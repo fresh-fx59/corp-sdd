@@ -6,6 +6,7 @@ cd "$(dirname "$0")/.."
 fail=0
 node tools/gen-index.mjs --check || fail=1
 node tools/corp-lint.mjs || fail=1
+node tools/check-contract-split-brain.mjs || fail=1   # no-op in repos with no references:
 if [ "$fail" -ne 0 ]; then
   echo "✗ verify-docs failed — fix the errors above (each carries a remediation hint), then retry"
   exit 1
