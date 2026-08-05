@@ -313,11 +313,12 @@ const esc = (s)=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&l
 // wrap latin path/command-like tokens in <code>; tokenize RAW text, then escape each segment
 function code(s){
   s=String(s==null?'':s);
-  const re=/(openspec\/[^\s,;]+|port-facts\.md|catalog\.md|spec\.md|<[a-z]+>)/g;
+  const re=/`[^`]+`|openspec\/[^\s,;]+|port-facts\.md|catalog\.md|spec\.md|<[a-z]+>/g;
   let out='',last=0,m;
   while((m=re.exec(s))!==null){
-    out+=esc(s.slice(last,m.index))+'<code>'+esc(m[0])+'</code>';
-    last=m.index+m[0].length;
+    const tok=m[0], inner=tok.startsWith('`')?tok.slice(1,-1):tok;
+    out+=esc(s.slice(last,m.index))+'<code>'+esc(inner)+'</code>';
+    last=m.index+tok.length;
   }
   return out+esc(s.slice(last));
 }
@@ -412,7 +413,7 @@ const R = {
   map(sl,i){
     const rows=(sl.rows||[]).map(r=>`<div class="map__row anim">
       <div class="map__k">${esc(r.k)}</div><div class="map__v">${code(r.v)}</div></div>`).join('');
-    return eyebrow(sl,i)+heading(sl)+`<div class="body"><div class="map">${rows}</div></div>`;
+    return eyebrow(sl,i)+heading(sl)+`<div class="body"><div class="map">${rows}</div>${noteEl(sl)}</div>`;
   },
   tree(sl,i){
     const rows=(sl.lines||[]).map(l=>{
