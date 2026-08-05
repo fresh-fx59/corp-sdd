@@ -10,8 +10,15 @@ links: []
 
 # SDD decks — source
 
-Reproducible source for the two Russian HTML slide decks (`../deck-ru-leadership.html`,
-`../deck-ru-team.html`). Data-driven: **one engine, content in JSON.**
+Reproducible source for the Russian HTML slide deck `../deck-ru-talk5.html` (the
+5-minute solution talk). Data-driven: **one engine, content in JSON.**
+
+> The 18-slide `deck-ru-leadership.html` and 21-slide `deck-ru-team.html` were **deleted
+> on 2026-08-05**: built 2026-07-23, they predated every 2026-08-04/05 change (Zoekt in
+> Phase 0, the OpenSpec root-resolution blocker, the `feature/ABCD-1234` conventions, the
+> cross-repo fan-out, the four new guard scripts) and a stale deck that still exists is a
+> deck that gets shown. Recoverable from git history if ever wanted; rebuild content from
+> `docs/2026-08-05-corp-sdd-solution-handoff.md`, not from the old JSON.
 
 ## Files
 - `deck-template.html` — the engine: CSS design system (two accents, light+dark themes),
@@ -20,14 +27,13 @@ Reproducible source for the two Russian HTML slide decks (`../deck-ru-leadership
 - `build-decks.mjs` — injects per-deck color tokens + slide JSON into the template; emits a
   standalone `.html` (with `<head>`) **and** a `.artifact.html` (body-only, for the Artifact
   publisher) into `dist/`.
-- `content/leadership.json`, `content/team.json` — the slide content (one array per deck).
+- `content/talk5.json` — the slide content (one array per deck).
   **This is the edit surface** — change wording here, not in the built HTML.
 
 ## Rebuild
 ```
-node build-decks.mjs leadership team      # -> dist/deck-ru-<key>.html (+ .artifact.html)
-cp dist/deck-ru-leadership.html ../deck-ru-leadership.html
-cp dist/deck-ru-team.html       ../deck-ru-team.html
+node build-decks.mjs talk5                # -> dist/deck-ru-talk5.html (+ .artifact.html)
+cp dist/deck-ru-talk5.html ../deck-ru-talk5.html
 ```
 To re-publish an Artifact in-place, republish the matching `dist/*.artifact.html` with the
 existing Artifact URL (see `../index.md`).
@@ -38,5 +44,5 @@ See the schema comment block near the top of `deck-template.html`'s renderer.
 
 ## Provenance
 Content written + adversarially verified by Opus subagents (content → verify → revise)
-strictly from `2026-07-17-corp-sdd-transition-design.md` and
-`2026-07-18-corp-sdd-team-playbook.md`. Generated 2026-07-22.
+strictly from `docs/superpowers/specs/2026-07-17-corp-sdd-transition-design.md` and
+`docs/superpowers/plans/2026-07-18-corp-sdd-team-playbook.md`. Generated 2026-07-22.

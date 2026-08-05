@@ -28,7 +28,7 @@ adapt them to your corporate agent-CLI port after the §0a port-discovery probes
 - **skills/** — the 5 vendored skills (tdd · verification · debugging · code-review · drill-down). **TEMPLATE** — install per P3 (or inline into commands if the port lacks skills; see harness pack §E).
 - **templates/** — file templates: `research.md`, `adr.md`, `store-contract.md`, `port-facts.md`, `conventions-branching.md` (branch + commit-message convention, enforced by `check-git-naming.sh`).
 - **config/** — `repos.json.example` (store clone manifest), `lefthook.yml.example` (pre-commit hook).
-- **slides/** — `deck-ru-talk5.html` (the 5-minute solution talk, 10 slides — also served at https://fresh-fx59.github.io/corp-sdd/), `deck-ru-leadership.html` (для руководства), `deck-ru-team.html` (для команды). Self-contained; open in any browser (← → / пробел, T — тема, F — во весь экран, Ctrl/Cmd+P → PDF). Editable source in `slides/src/` (`node build-decks.mjs leadership team`).
+- **slides/** — `deck-ru-talk5.html` (the 5-minute solution talk, 10 slides — also served at https://fresh-fx59.github.io/corp-sdd/). The older 18-slide leadership and 21-slide team decks were deleted 2026-08-05: they predated the 2026-08-04/05 changes. Self-contained; open in any browser (← → / пробел, T — тема, F — во весь экран, Ctrl/Cmd+P → PDF). Editable source in `slides/src/` (`node build-decks.mjs leadership team`).
 
 ## Quickstart (from the guide)
 1. **§0a port discovery FIRST** (half a day) — probe P1–P8, record answers in `port-facts.md` (template provided) in the system store. This parameterizes everything below.

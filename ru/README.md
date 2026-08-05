@@ -29,7 +29,7 @@
 - **skills/** — 5 вендоренных skills (tdd · verification · debugging · code-review · drill-down). **TEMPLATE** — установите по P3 (или встройте прямо в команды, если в порте нет skills; см. harness pack §E).
 - **templates/** — файловые шаблоны: `research.md`, `adr.md`, `store-contract.md`, `port-facts.md`, `conventions-branching.md` (конвенция веток и сообщений коммитов, которую проверяет `check-git-naming.sh`).
 - **config/** — `repos.json.example` (манифест клонов стора), `lefthook.yml.example` (pre-commit-хук).
-- **slides/** — `deck-ru-talk5.html` (доклад о решении на 5 минут, 10 слайдов — он же опубликован на https://fresh-fx59.github.io/corp-sdd/), `deck-ru-leadership.html` (для руководства), `deck-ru-team.html` (для команды). Самодостаточны; открываются в любом браузере (← → / пробел, T — тема, F — во весь экран, Ctrl/Cmd+P → PDF). Редактируемый исходник в `slides/src/` (`node build-decks.mjs leadership team`).
+- **slides/** — `deck-ru-talk5.html` (доклад о решении на 5 минут, 10 слайдов — он же опубликован на https://fresh-fx59.github.io/corp-sdd/). Прежние презентации (18 сл. для руководства и 21 сл. для команды) удалены 2026-08-05: они не содержали изменений от 2026-08-04/05. Самодостаточны; открываются в любом браузере (← → / пробел, T — тема, F — во весь экран, Ctrl/Cmd+P → PDF). Редактируемый исходник в `slides/src/` (`node build-decks.mjs leadership team`).
 
 ## Быстрый старт (из руководства)
 1. **СНАЧАЛА §0a port discovery** (полдня) — прощупайте P1–P8, запишите ответы в `port-facts.md` (шаблон приложен) в системном сторе. Это параметризует всё, что ниже.
