@@ -2,7 +2,7 @@
   {
     "layout": "title",
     "eyebrow": "Corp SDD",
-    "title": "SDD для мультирепного продукта",
+    "title": "SDD для продукта из нескольких репозиториев",
     "subtitle": "Обёртка над OpenSpec и Superpowers. Проверки — кодом. Спецификация хранится рядом с кодом.",
     "chips": [
       "спека и код в одном pull request",
