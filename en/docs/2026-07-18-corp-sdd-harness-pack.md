@@ -36,6 +36,12 @@ description: Structured pre-review of a diff before humans spend time (any role)
 Review the diff of {{args}} (branch/PR/change). Follow skill corp-code-review throughout.
 Review in this order, report findings by severity
 (blocker / serious / minor), each with file:line and a concrete fix:
+0. COVERAGE, from the machine first: run /opsx:verify <change-id> (add --store <id> when the
+   change lives in the store). Read its report and carry it into your findings: an incomplete task
+   or an unimplemented requirement (CRITICAL) is a blocker; an uncovered scenario (WARNING) is at
+   least a serious finding. It checks that a test EXISTS — never that it ran — so the pasted
+   test-run evidence from corp-implement is still required. If this is not an OpenSpec change, or
+   the command is unavailable, say so in one line and start at 1.
 1. SPEC CONFORMANCE: does the diff implement exactly the delta spec — nothing missing, nothing
    beyond scope? Unrequested changes are findings, however good they look.
 2. TEST HONESTY: does each new test assert SCENARIO behavior (would it fail if the feature broke)?
@@ -203,6 +209,9 @@ name: corp-code-review
 description: Giving and receiving review on agent-written diffs. Use for corp-review runs and when responding to review feedback.
 ---
 ## Giving review (the order matters)
+0. Coverage from the machine first: /opsx:verify reports incomplete tasks, unimplemented
+   requirements (CRITICAL) and uncovered scenarios (WARNING). CRITICAL becomes a blocker. It
+   proves a test EXISTS, not that it ran — evidence of the run stays a separate requirement.
 1. Spec conformance first: the delta spec is the contract. Missing behavior = blocker. EXTRA
    behavior nobody asked for = finding too (scope creep hides bugs and unreviewed surface).
 2. Test honesty second: for each test ask "would this fail if the feature broke?" A diff whose

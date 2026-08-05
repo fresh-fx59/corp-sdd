@@ -3,6 +3,9 @@ name: corp-code-review
 description: Giving and receiving review on agent-written diffs. Use for corp-review runs and when responding to review feedback.
 ---
 ## Giving review (the order matters)
+0. Coverage from the machine first: /opsx:verify reports incomplete tasks, unimplemented
+   requirements (CRITICAL) and uncovered scenarios (WARNING). CRITICAL becomes a blocker. It
+   proves a test EXISTS, not that it ran — evidence of the run stays a separate requirement.
 1. Spec conformance first: the delta spec is the contract. Missing behavior = blocker. EXTRA
    behavior nobody asked for = finding too (scope creep hides bugs and unreviewed surface).
 2. Test honesty second: for each test ask "would this fail if the feature broke?" A diff whose
