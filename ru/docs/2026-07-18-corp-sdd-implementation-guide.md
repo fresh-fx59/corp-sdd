@@ -2,6 +2,7 @@
 
 **Дополнение к:** [2026-07-17-corp-sdd-transition-design.md](../specs/2026-07-17-corp-sdd-transition-design.md) (APPROVED) · **Дата:** 2026-07-18
 **Передача:** реализующий агент начинает с [2026-07-18-corp-sdd-handoff-to-coder-agent.md](2026-07-18-corp-sdd-handoff-to-coder-agent.md). **Руководство для команды:** [2026-07-18-corp-sdd-team-playbook.md](2026-07-18-corp-sdd-team-playbook.md) — раздайте каждой роли её раздел во время онбординга фазы 1.
+**Поправка 2026-08-04 — Zoekt переехал из Фазы 2 в Фазу 0:** генерируемый `openspec/index.md` индексирует только спеки и модули и на brownfield-репозитории начинается с 0 возможностей, поэтому кросс-репозиторный поиск по коду — это карта эстейта для агента с первого дня. Проверенный runbook: [2026-08-04-corp-sdd-zoekt-setup.md](2026-08-04-corp-sdd-zoekt-setup.md) — установка, ловушка молчаливого `sym:` без ctags, `tools/index-all.sh` и JSON-контракт для агента. Добавьте его §1 в предусловия §0b, а строки выхода — в §8.
 
 > **⚠ ХАРНЕСС — ЭТО ПОРТ.** Организация использует **корпоративный порт агентского CLI, а не ванильную (апстрим) версию**. Каждая механика уровня харнесса в этом руководстве, взятая из апстрим-документации агента — каталог конфигурации `.agent/`, расположение/формат кастомных команд, поддержка Agent-Skills, подключение MCP, headless-флаги, имя контекстного файла — это **допущение по умолчанию, которое нужно ПРОВЕРИТЬ на порте** (§0a), а не факт. Пять скриптов из §10 не зависят от харнесса (чистый Node/bash поверх файлов) и не затронуты, за исключением двух строк в `corp-lint.mjs`, которые называют каталог конфигурации: запись `.agent` в `SCOPES` и регулярное выражение `\.agent\/skills\/` в `CAPS` — переименуйте обе в каталог конфигурации порта, если он отличается (эти две строки — единственные санкционированные правки скриптов).
 
@@ -62,9 +63,11 @@ git add -A && git commit -m "system store: skeleton + first catalog"
 
 ## 2. Онбординг каждого пилотного репозитория (~1 час на каждый)
 
+> **⚠ БЛОКЕР ИСПРАВЛЕН 2026-08-04 — прочитайте [2026-08-04-openspec-root-resolution-fix.md](2026-08-04-openspec-root-resolution-fix.md) до выполнения этого раздела.** OpenSpec ищет свой корень, поднимаясь **вверх** от текущего каталога в поисках `openspec/`, и **этот обход не останавливается на границе `.git`** (проверено, 1.7.0). Репозиторий, пропустивший этот раздел, — или лежащий внутри дерева стора — молча пишет каждую спеку в **стор**, а не в репозиторий кода. Отсюда два правила: выполняйте этот раздел на *каждом* репозитории кода до любой работы со спеками и держите клоны **вне** стора (в `repos.json` намеренно указан `"clones_dir": "../clones"` — соседний каталог). Проверяйте через `openspec context` или `tools/check-openspec-root.sh`. Там же исправлено имя пакета: **`@fission-ai/openspec`**, а голый `openspec` — чужая пустышка версии 0.0.0 без бинарника.
+
 ```bash
 cd pilot-repo-a
-npx openspec init --tools <your-agent>  # pin the version; verify output lands per P8 —
+npx @fission-ai/openspec init --tools <your-agent>  # pin the version; verify output lands per P8 —
                                         # if the port reads a different dir, move/symlink the
                                         # generated command+skill files to the P1/P2 locations
 mkdir -p tools
@@ -125,25 +128,71 @@ Held-out гейты (фаза 2, согласно проекту §3): отде�
 
 **Полный набор живёт в [harness pack](2026-07-18-corp-sdd-harness-pack.md): все СЕМЬ тел команд (шесть глаголов, на которые ссылаемся ниже, + `corp-archive` для закрытия после слияния), все пять текстов скиллов (самодостаточные — во внутренней ограниченной сети не нужен внешний репозиторий) и каждый файл-шаблон (research.md, ADR, контракт стора, port-facts) плюс ручной кросс-репозиторный чек-лист.** Установка согласно §E пака. Два примера команд встроены здесь, чтобы задать паттерн:
 
-**`<port-command-dir>/corp-spec.md`**
+**`<port-command-dir>/corp-spec.md`** — *переписана 2026-08-05: одна команда теперь обрабатывает и однорепозиторный, и кросс-репозиторный случай, решая по drill-down. Обоснование и модель тикетов: [кросс-репозиторный фан-аут](2026-08-04-corp-sdd-cross-repo-fanout.md) §4.*
 ```markdown
 ---
-description: Draft a delta spec from a tracker story via interview (analyst flow)
+description: Draft the delta spec(s) for a story via interview; fan out across repos when needed (analyst flow)
 ---
-You are drafting a delta spec for story {{args}}.
-1. Fetch the story and linked wiki pages via the tracker/wiki MCP tools.
-2. Read openspec/index.md, then ONLY the living specs the story touches; follow skill
-   corp-drill-down (central catalog → repo index → live files; repo wins; ≤3 hops).
-3. Verify every contract fact against live code (embed with <!-- embed --> directives).
-4. Interview the analyst — ONE question at a time, multiple-choice preferred — until
-   requirements and Given/When/Then scenarios are unambiguous.
-5. Create the OpenSpec change (proposal + delta spec) via the opsx workflow.
-   Append every verified fact as a pointer line to research.md (path#Lx-Ly + finding).
-6. Run: bash tools/verify-docs.sh — fix until green.
-7. HANDOVER (do this yourself — the analyst never touches git): create/switch to the
-   change branch, commit the change folder, push, and open (or update) the spec PR.
-   Post the spec summary + PR link back to the tracker story. Do NOT create design.md
-   or tasks.md (plan happens at pull time).
+You are drafting the spec for story {{args}}.
+Follow skills corp-drill-down (all system facts) and corp-verification (all done-claims).
+
+1. READ + INTERVIEW, once. Fetch the story, its wiki pages and attachments via the tracker/wiki
+   MCP tools. Read openspec/index.md and ONLY the living specs the story touches; follow
+   corp-drill-down (central catalog → repo index → live files; repo wins; ≤3 hops). Verify every
+   contract fact against live code. Interview the analyst — ONE question at a time,
+   multiple-choice preferred — until requirements and Given/When/Then scenarios are unambiguous.
+   Interview ONCE at story level even if several repos are involved: the requirements are shared,
+   so interviewing per repo asks the same questions N times and invites N different answers.
+
+2. DECIDE THE SHAPE, then CONFIRM before creating anything.
+   Count the repos the story touches.
+   - ONE repo → single-repo path. Go to step 3.
+   - MORE THAN ONE repo → is there a genuine shared contract (a shape or protocol crossing the
+     boundary)? If NOT, say "not a cross-repo change; this is N independent stories" and stop —
+     do not fan out. If YES, go to step 4.
+   Before creating any ticket, branch, commit or PR, state the plan and WAIT for the analyst:
+   which repos, which is the producer, which tickets already exist, which you would create, and
+   how many PRs this will open. Never fan out silently.
+
+3. SINGLE REPO. Create the OpenSpec change (proposal + delta spec) in that repo via the opsx
+   workflow. Append verified facts to research.md as pointers (path#Lx-Ly + one-line finding).
+   Do NOT create design.md or tasks.md — planning happens at pull time.
+   Run: bash tools/verify-docs.sh — fix until green.
+   HANDOVER (do this yourself — the analyst never touches git): create/switch to the change
+   branch named feature/<TICKET> for the story's ticket, commit the change folder, push, and
+   open (or update) the spec PR. Post the spec summary + PR link back to the story. Done.
+
+4. CROSS-REPO — TICKETS FIRST, driven by what already exists.
+   Look at the child tickets attached to the parent story.
+   - Children already exist → use them. Map each child to its repo. If a repo has no child, or a
+     child names no repo, STOP and ask the analyst — never guess an owner.
+   - No children exist → ask the analyst: "N repos are involved; shall I create one child story
+     per repo, or will you?" Follow the answer. If they create them, wait and re-read.
+   The PARENT story is the store-contract ticket — it does not get a child of its own.
+
+5. CONTRACT FIRST. On branch feature/<parent-ticket> in the SYSTEM STORE, create/update the
+   contract spec (template store-contract.md). Shape facts live there and nowhere else.
+   Run verify-docs, commit, push, open the store PR, post the PR link on the parent story.
+
+6. PER REPO, one at a time:
+   a. Branch feature/<child-ticket> (naming: conventions/branching.md).
+   b. Write the OpenSpec change: proposal + that repo's OWN delta spec, which LINKS the store
+      contract by spec id and store id — never restates the shape. Include the fetch line:
+      `openspec show <contract-spec-id> --type spec --store <store-id>`
+      Append verified facts to research.md as pointers. No design.md, no tasks.md.
+   c. Run: bash tools/verify-docs.sh — fix until green. The split-brain lint must pass; if it
+      fires you restated a contract fact — delete it and link instead.
+   d. Commit as feat(<child-ticket>): <text>, push, open the PR, post the PR link to the ticket.
+
+7. GATES. On every implementation child record: approval order (contract first), implementation
+   order (producer first), merge order (producer → consumers → store contract last), and that a
+   contract change stops work in all repos. Mark each child blocked by the parent.
+
+8. On the parent story, post the ticket → repo → role map and the intended merge window.
+
+9. VERIFY before reporting: every child is linked and mapped to a repo; every repo has a branch,
+   a pushed commit and an open PR; verify-docs green in each. Paste the evidence.
+   Never claim done without it.
 ```
 
 **`<port-command-dir>/corp-implement.md`**
@@ -497,6 +546,7 @@ cd "$(dirname "$0")/.."
 fail=0
 node tools/gen-index.mjs --check || fail=1
 node tools/corp-lint.mjs || fail=1
+node tools/check-contract-split-brain.mjs || fail=1   # no-op in repos with no references:
 if [ "$fail" -ne 0 ]; then
   echo "✗ verify-docs failed — fix the errors above (each carries a remediation hint), then retry"
   exit 1
@@ -614,6 +664,22 @@ if [ "$fail" -ne 0 ]; then
 fi
 echo "✓ sync done → $CLONES_DIR"
 ```
+
+### Скрипты, добавленные 2026-08-04/05 (исходники — в их собственных runbook'ах)
+
+Ещё четыре скрипта без зависимостей поставляются в `scripts/tools/` стартового набора. Их полные
+исходники и матрицы тестов лежат в runbook'ах, а не дублируются здесь, — чтобы правильной нужно было
+держать одну копию:
+
+| Скрипт | Назначение | Источник + доказательства |
+|---|---|---|
+| `check-openspec-root.sh` | отказаться работать, если найденный корень OpenSpec — не этот репозиторий | [openspec-root-resolution-fix](2026-08-04-openspec-root-resolution-fix.md) §2, T9–T10 |
+| `check-contract-split-brain.mjs` | уронить сборку, если спок повторяет факт контракта из стора | [openspec-root-resolution-fix](2026-08-04-openspec-root-resolution-fix.md) §3b, T15–T19 |
+| `check-git-naming.sh` | требовать `feature/ABCD-1234` и `feat(ABCD-1234): text` | [setup task](2026-08-04-corp-sdd-setup-task-for-agent.md) §6–§7 |
+| `index-all.sh` | пересобрать индекс Zoekt по уже существующим клонам стора | [zoekt setup](2026-08-04-corp-sdd-zoekt-setup.md) §3 |
+
+`verify-docs.sh` выше уже вызывает линт против дублирования контракта. `check-git-naming.sh` подключён
+через `lefthook.yml` (`commit-msg` + `pre-push`), а не через `verify-docs.sh`.
 
 ## 11. Свидетельства тестирования (2026-07-18, Node v22, синтетический пилотный репозиторий + стор)
 
