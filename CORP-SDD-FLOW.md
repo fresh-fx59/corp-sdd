@@ -18,6 +18,16 @@ The value column compares workflow coverage, not measured pilot outcomes.
 | 6. Generate automated-test scaffolds<br>Software development engineer in test · `corp-autotest` | Generates one behavior-level test skeleton per approved scenario; labels missing data or environment work as `TODO(<what>)`; never invents fixtures or accesses held-out gates; runs every runnable scaffold. | No OpenSpec command. Reads approved delta scenarios as the source of test behavior. | No skill is invoked. The command applies the behavior-over-implementation principle used by `corp-tdd`, but remains Corp SDD role scaffolding. | No Corp SDD script. Project-specific test commands run for runnable scaffolds. | Test skeletons plus run output. Unrunnable items remain labeled drafts; held-out suites stay agent-invisible and unchanged. | Extends each approved scenario into a behavioral test scaffold without inventing missing setup or exposing held-out gates. Vanilla OpenSpec provides no separate automated-testing role flow. |
 | 7. Archive after merge<br>Developer or release owner · `corp-archive` | Verifies the pull request is merged and `main` is current; folds the delta into living specs; writes an append-only architecture decision record; regenerates the capability index; commits, pushes, and posts a tracker completion note. | Template says `opsx archive`; exact port-specific spelling is not pinned. | `corp-verification` applies **verification-before-completion**. The post-merge Git and tracker handoff is Corp SDD-specific. | Direct: `node tools/gen-index.mjs`, then `bash tools/verify-docs.sh` → `gen-index.mjs --check` → `corp-lint.mjs` → `check-contract-split-brain.mjs`. Hook: `check-git-naming.sh` on commit and push. | Living specs, architecture decision record, index, archive commit, and tracker note. Exit after verification is green and push succeeds. **Current gap:** the documented `archive <change-id>...` subject fails the shipped naming hook. The store catalog updates later; this step does not run `aggregate-index.mjs`. | Adds decision provenance, generated discovery indexes, Git evidence, and tracker closure after OpenSpec folds the delta into living specs. This prevents the specification lifecycle from ending without organizational handoff. |
 
+## Fast product-team onboarding
+
+Onboarding is designed to be fast, easy, and low-risk: no big-bang migration and no need to document the entire legacy system first. The first result is a real delivered change, not a documentation project. Actual timing must be confirmed by the pilot.
+
+1. Select one product team, 2–3 related repositories, and one small real change.
+2. Install the shared Corp SDD kit once and give each role a short guided flow.
+3. Deliver the pilot without replacing the team's existing tools, roles, review, or testing process.
+4. Compare clarity, cycle time, defects, review effort, and team feedback with the baseline.
+5. Remove any friction, then expand to the next teams by opt-in; keep a rollback path.
+
 ## Supporting automation outside the seven story steps
 
 These scripts exist in the starter kit but are not invoked directly by the current seven
