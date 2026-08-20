@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "project": "<project-id>",
+  "repository_source": "manual",
+  "repositories": [
+    {
+      "name": "<repository-name>",
+      "url": "ssh://git@<forge>/<project>/<repository>.git",
+      "base_branch": "develop"
+    }
+  ]
+}

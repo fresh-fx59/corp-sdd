@@ -1,12 +1,16 @@
 #!/usr/bin/env bash
 # verify-docs.sh — the disposer entry point. One code path, four triggers:
-# agent post-write self-check / lefthook pre-commit / on demand / CI backstop.
+# agent post-write self-check / lefthook pre-commit / on demand / Jenkins backstop.
 set -uo pipefail
-cd "$(dirname "$0")/.."
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd -P)"
+REPO_ROOT="$(git -C "$SCRIPT_DIR" rev-parse --show-toplevel 2>/dev/null || true)"
+if [ -z "$REPO_ROOT" ]; then REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd -P)"; fi
+REPO_ROOT="$(cd "$REPO_ROOT" && pwd -P)"
+cd "$REPO_ROOT"
 fail=0
-node tools/gen-index.mjs --check || fail=1
-node tools/corp-lint.mjs || fail=1
-node tools/check-contract-split-brain.mjs || fail=1   # no-op in repos with no references:
+node "$REPO_ROOT/tools/gen-index.mjs" --check || fail=1
+node "$REPO_ROOT/tools/corp-lint.mjs" || fail=1
+node "$REPO_ROOT/tools/check-contract-split-brain.mjs" || fail=1   # no-op in repos with no references:
 if [ "$fail" -ne 0 ]; then
   echo "✗ verify-docs failed — fix the errors above (each carries a remediation hint), then retry"
   exit 1

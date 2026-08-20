@@ -1,6 +1,6 @@
 ---
 name: corp-tdd
-description: Tiered test-driven development for this stack (JVM services, stream processing, JS frontend). Use for ALL implementation work.
+description: Tiered test-driven development for this stack (Java/Spring, Flink, Next.js). Use for ALL implementation work.
 ---
 ## Iron law
 No production code without a failing test first. No exceptions for "trivial" changes — trivial
@@ -8,17 +8,17 @@ changes with tests stay trivial; trivial changes without tests become incidents.
 
 ## The two tiers (this is the stack-specific part)
 FAST tier — the inner loop, run after EVERY green step, must stay in seconds:
-- JVM: plain JUnit unit tests. No framework context. Mock at module boundaries only.
-- Stream-processing jobs: the stream processor's operator-test harness for operators
+- Java: plain JUnit unit tests. No Spring context. Mock at module boundaries only.
+- Flink: OneInputStreamOperatorTestHarness / KeyedOneInputStreamOperatorTestHarness for operators
   and UDFs — in-JVM, no cluster.
-- JS frontend: component tests (testing-library style), pure-function tests.
+- Next.js: component tests (testing-library style), pure-function tests.
 SLOW tier — run at TASK boundaries and before PR, never inside the micro-loop:
-- JVM: Testcontainers / integration-context tests. Respect context caching: shared abstract
-  base class, static containers, no per-class dirties-context/mock-bean scattering — a cache-busted
+- Java: Testcontainers / @SpringBootTest context tests. Respect context caching: shared abstract
+  base class, static containers, no per-class @DirtiesContext/@MockBean scattering — a cache-busted
   suite turns 2 minutes into 15 and kills this whole discipline.
-- Stream-processing jobs: embedded-cluster pipeline tests.
-- JS frontend: E2E/visual pass (run the app; screenshots are evidence).
-DI/wiring bugs surface ONLY in the slow tier — a task touching DI wiring is not done on fast
+- Flink: MiniClusterWithClientResource pipeline tests.
+- Next.js: E2E/visual pass (run the app; screenshots are evidence).
+DI/wiring bugs surface ONLY in the slow tier — a task touching Spring wiring is not done on fast
 tier green alone.
 
 ## The cycle (per task in tasks.md)

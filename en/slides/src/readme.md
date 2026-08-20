@@ -13,12 +13,9 @@ links: []
 Reproducible source for the Russian HTML slide deck `../deck-ru-talk5.html` (the
 5-minute solution talk). Data-driven: **one engine, content in JSON.**
 
-> The 18-slide `deck-ru-leadership.html` and 21-slide `deck-ru-team.html` were **deleted
-> on 2026-08-05**: built 2026-07-23, they predated every 2026-08-04/05 change (Zoekt in
-> Phase 0, the OpenSpec root-resolution blocker, the `feature/ABCD-1234` conventions, the
-> cross-repo fan-out, the four new guard scripts) and a stale deck that still exists is a
-> deck that gets shown. Recoverable from git history if ever wanted; rebuild content from
-> `docs/2026-08-05-corp-sdd-solution-handoff.md`, not from the old JSON.
+> Older leadership and team decks were removed because they no longer matched the
+> executable kit. Rebuild future material from `docs/SETUP.md`, `docs/OPERATIONS.md`,
+> and the current command bodies.
 
 ## Files
 - `deck-template.html` — the engine: CSS design system (two accents, light+dark themes),
@@ -43,6 +40,5 @@ existing Artifact URL (see `../index.md`).
 See the schema comment block near the top of `deck-template.html`'s renderer.
 
 ## Provenance
-Content written + adversarially verified by Opus subagents (content → verify → revise)
-strictly from `docs/superpowers/specs/2026-07-17-corp-sdd-transition-design.md` and
-`docs/superpowers/plans/2026-07-18-corp-sdd-team-playbook.md`. Generated 2026-07-22.
+Current claims must trace to `docs/SETUP.md`, `docs/OPERATIONS.md`, command bodies,
+and tested scripts. Last workflow update: 2026-08-20.

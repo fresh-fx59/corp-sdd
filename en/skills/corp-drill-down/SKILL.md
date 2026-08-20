@@ -12,8 +12,9 @@ to the level above it; only code and living specs may be QUOTED as fact.
 2. That repo's openspec/index.md: find the capability's living spec + relevant module. If the
    catalog and the repo index disagree, the repo index wins — note the mismatch in the tracker
    so DevOps re-aggregates.
-3. The living spec, then the ACTUAL code it points to (local clone; run the sync script if the
-   clone is stale — the lint warns). For contract facts (field names, endpoint/event shapes):
+3. The living spec, then the ACTUAL code it points to (registered Git submodule; run
+   `sync-submodules.sh` if it is stale — the lint warns). For contract facts
+   (field names, endpoint/event shapes):
    read the source and EMBED it (<!-- embed: path#Lx-Ly -->) — never transcribe by hand, never
    quote a spec's prose for a shape when the source is one hop away.
 
@@ -22,7 +23,7 @@ Every verified fact → one line in the change's research.md: path#Lstart-Lend +
 Never paste file contents into research.md — pointers stay fresh, payloads rot and bloat context.
 
 ## Cold start (capability in no index)
-Search the catalog for related terms → search code (grep across local clones) → still nothing?
+Search the catalog for related terms → search code across `system-store/submodules/` → still nothing?
 STOP and ask a human which repo should own it. NEVER scaffold a new capability without a confirmed
 home; the first commit claims the name, and a wrong claim creates a duplicate-ownership mess.
 New capability confirmed → create openspec/specs/<kebab-id>/spec.md in the owning repo; the index

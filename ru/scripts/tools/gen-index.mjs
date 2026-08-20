@@ -13,7 +13,7 @@ const osDir = join(ROOT, 'openspec');
 const specsDir = join(osDir, 'specs');
 const repoTxt = join(osDir, 'repo.txt');
 
-// repo identity is committed data, not the folder name (CI workspaces, worktrees, renamed clones)
+// repo identity is committed data, not the folder name (Jenkins workspaces, worktrees, renamed clones)
 const repoName = existsSync(repoTxt) ? readFileSync(repoTxt, 'utf8').trim() : basename(ROOT);
 
 const byId = (a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0); // byte-wise, locale-independent

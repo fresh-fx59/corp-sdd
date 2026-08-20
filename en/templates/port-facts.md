@@ -4,4 +4,4 @@
 |---|---|---|---|---|
 | P1 | config dir | ... | ... | e.g. `.acme/` |
 ... (P2–P8)
-Re-probe on EVERY port upgrade before rollout (playbook, DevOps §2).
+Re-probe on every port or OpenSpec upgrade before rollout. See `docs/SETUP.md` stage 1.

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // corp-lint.mjs — deterministic disposer for agent-written docs. Zero dependencies.
-// Scope: openspec/, docs/, .agent/ only (never lints build output or source code docs).
+// Scope: openspec/, docs/, .qwen/ only (never lints build output or source code docs).
 // Checks: hard file caps, index<->spec bijection + index schema, relative links + anchors,
 // embedded snippets vs source, tasks.md state header, delta-spec sections.
 // Every ERROR carries a remediation hint. Exit 1 on any ERROR; WARNs never block.
@@ -8,7 +8,7 @@ import { readFileSync, readdirSync, existsSync } from 'node:fs';
 import { join, dirname, resolve, relative, sep } from 'node:path';
 
 const ROOT = resolve(process.argv[2] ?? '.');
-const SCOPES = ['openspec', 'docs', '.agent'].map(d => join(ROOT, d)).filter(existsSync);
+const SCOPES = ['openspec', 'docs', '.qwen'].map(d => join(ROOT, d)).filter(existsSync);
 
 // ---- hardcoded caps (lines). The write-boundary contract: exceed => rejected, never trimmed.
 const CAPS = [
@@ -17,7 +17,7 @@ const CAPS = [
   [/(^|\/)openspec\/changes\/.+\/tasks\.md$/, 200],
   [/(^|\/)openspec\/changes\/.+\/research\.md$/, 400],
   [/(^|\/)openspec\/changes\/.+\/proposal\.md$/, 200],
-  [/(^|\/)\.agent\/skills\/.+\.md$/, 250],
+  [/(^|\/)\.qwen\/skills\/.+\.md$/, 250],
 ];
 
 const errors = [], warns = [];

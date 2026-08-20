@@ -5,7 +5,7 @@
 
 ## Shape
 <!-- THE one place this contract's facts live. Spoke specs LINK here, never restate. -->
-<!-- embed: <relative path into the producing repo's clone>#Lx-Ly -->
+<!-- embed: submodules/<producer-repository>/<relative-source-path>#Lx-Ly -->
 ```<fence with the embedded schema/interface source>```
 
 ## Compatibility rules

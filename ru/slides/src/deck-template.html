@@ -71,14 +71,6 @@ body{background:var(--bg);color:var(--ink);font-family:var(--font-sans);
 .subtitle{font-size:1.12em;font-weight:420;line-height:1.4;color:var(--muted);max-width:42ch;text-wrap:pretty}
 .body{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;justify-content:center;overflow:hidden}
 
-/* speaker foot — what the presenter says out loud, small, at the bottom of the slide */
-.foot{padding-top:.62em;border-top:1px solid var(--line);font-size:.72em;line-height:1.42;
-  color:var(--faint);text-wrap:pretty}
-.foot::before{content:"голосом · ";font-family:var(--font-mono);font-size:.86em;letter-spacing:.12em;
-  text-transform:uppercase;color:var(--accent);opacity:.85}
-.foot code{font-family:var(--font-mono);font-size:.94em;color:var(--muted)}
-.foot--src::before{content:"источники · "}
-
 /* note callout */
 .note{margin-top:1.1em;font-size:.9em;line-height:1.42;color:var(--ink);background:var(--accent-soft);
   border-left:3px solid var(--accent);border-radius:0 8px 8px 0;padding:.7em 1em}
@@ -313,12 +305,11 @@ const esc = (s)=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&l
 // wrap latin path/command-like tokens in <code>; tokenize RAW text, then escape each segment
 function code(s){
   s=String(s==null?'':s);
-  const re=/`[^`]+`|openspec\/[^\s,;]+|port-facts\.md|catalog\.md|spec\.md|<[a-z]+>/g;
+  const re=/(openspec\/[^\s,;]+|port-facts\.md|catalog\.md|spec\.md|<[a-z]+>)/g;
   let out='',last=0,m;
   while((m=re.exec(s))!==null){
-    const tok=m[0], inner=tok.startsWith('`')?tok.slice(1,-1):tok;
-    out+=esc(s.slice(last,m.index))+'<code>'+esc(inner)+'</code>';
-    last=m.index+tok.length;
+    out+=esc(s.slice(last,m.index))+'<code>'+esc(m[0])+'</code>';
+    last=m.index+m[0].length;
   }
   return out+esc(s.slice(last));
 }
@@ -413,7 +404,7 @@ const R = {
   map(sl,i){
     const rows=(sl.rows||[]).map(r=>`<div class="map__row anim">
       <div class="map__k">${esc(r.k)}</div><div class="map__v">${code(r.v)}</div></div>`).join('');
-    return eyebrow(sl,i)+heading(sl)+`<div class="body"><div class="map">${rows}</div>${noteEl(sl)}</div>`;
+    return eyebrow(sl,i)+heading(sl)+`<div class="body"><div class="map">${rows}</div></div>`;
   },
   tree(sl,i){
     const rows=(sl.lines||[]).map(l=>{
@@ -471,12 +462,6 @@ SLIDES.forEach((sl,i)=>{
   sec.className='slide slide--'+sl.layout+(i===0?' is-active':'');
   const fn=R[sl.layout]||R.bullets;
   sec.innerHTML=fn(sl,i);
-  if(sl.foot){
-    const f=document.createElement('div');
-    f.className='foot anim'+(sl.footKind==='src'?' foot--src':'');
-    f.innerHTML=code(sl.foot);
-    sec.appendChild(f);
-  }
   wrap.appendChild(sec);
 });
 

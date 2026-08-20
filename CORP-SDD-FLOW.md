@@ -1,45 +1,42 @@
 # Corp SDD flow
 
-This table maps each story-delivery step to its Corp SDD command, OpenSpec operation,
-adopted Superpowers discipline, deterministic scripts, and exit gate.
+This is the short English workflow reference. Installation is documented only in
+[`en/docs/SETUP.md`](en/docs/SETUP.md); daily use is documented only in
+[`en/docs/OPERATIONS.md`](en/docs/OPERATIONS.md).
 
-All five `corp-*` skills are corporate rewrites derived from Superpowers; Corp SDD does
-not invoke an upstream Superpowers runtime. “Hook” means the example Lefthook configuration
-has been installed. “Verification checks” means `verify-docs.sh` and its three child scripts.
-The value column compares workflow coverage, not measured pilot outcomes.
+## Installation boundary
 
-| Step / owner / command | What Corp SDD performs | OpenSpec command or artifact | Superpowers adoption | Scripts actually executed | Output and exit gate | Business value over vanilla OpenSpec |
-|---|---|---|---|---|---|---|
-| 1. Specify the change<br>Analyst · `corp-spec` | Reads the tracker story, wiki, living specs, and live code; interviews once; chooses single-repository or cross-repository shape; creates branches, commits, pull requests, and tracker links. Cross-repository work creates the shared contract first, then one linked change per repository. | Configured `opsx` propose workflow; the current template does not pin a literal slash command. A spoke fetches a shared contract with `openspec show <contract-spec-id> --type spec --store <store-id>`. | `corp-drill-down` adds Corp SDD's source-first trust order. `corp-verification` adopts **verification-before-completion**: no completed claim without fresh evidence. | Direct: `bash tools/verify-docs.sh` → `node tools/gen-index.mjs --check` → `node tools/corp-lint.mjs` → `node tools/check-contract-split-brain.mjs`. Hook: `check-git-naming.sh --commit-msg {1}` on commit and `--branch` on push. | Proposal, delta spec, `research.md`, branch, commit, pull request, and tracker link. Exit after every affected repository passes all verification checks and carries linked evidence. | Adds tracker-to-Git delivery, verified code facts, and shared-contract fan-out. Vanilla OpenSpec manages spec artifacts but does not create the story, branch, commit, pull request, or cross-repository delivery map. |
-| 2. Plan against current code<br>Developer · `corp-plan` | Re-reads the approved delta and today's code; records verified facts; writes a disposable `design.md` and risk-first `tasks.md`. Each task is one reviewable red-green cycle. Implementation does not start here. | No OpenSpec command. Reads the proposal, delta spec, and affected living specs. | `corp-drill-down` applies source-first fact gathering. `corp-verification` requires fresh proof. Corp SDD deliberately replaces the upstream **writing-plans** workflow with smaller tasks inside the OpenSpec change. | Direct: `bash tools/verify-docs.sh` → `gen-index.mjs --check` → `corp-lint.mjs` → `check-contract-split-brain.mjs`. | `design.md` under 200 lines and `tasks.md` with a dated state header. Exit after verification is green and the plan is presented for developer approval. | Adds late planning against current code, risk-first ordering, reviewable task size, and a human handoff before coding. This reduces stale-plan exposure beyond OpenSpec's artifact dependency graph. |
-| 3. Implement task by task<br>Developer · `corp-implement` | Resumes from `tasks.md`; writes a failing scenario test; writes the smallest implementation; runs fast tests; refactors on green; runs slow tests at task boundaries; records evidence; stops and classifies every spec/code mismatch. | Corp SDD deliberately does not call `/opsx:apply`; its generic apply loop is replaced by the stricter task-by-task test-driven loop. OpenSpec artifacts remain the contract and task state. | `corp-tdd` adopts **test-driven-development**. `corp-debugging` adopts **systematic-debugging**. `corp-verification` adopts **verification-before-completion**. `corp-drill-down` supplies verified system facts. | After every write under `openspec/` or `docs/`: `bash tools/verify-docs.sh` → `gen-index.mjs --check` → `corp-lint.mjs` → `check-contract-split-brain.mjs`. The repository's fast, slow, and full test commands also run; their exact commands are project-specific. | Code, tests, updated `tasks.md`, and pasted test output. Exit only when all tasks are checked, the full suite is green, and the final verification checks pass after the last edit. | Adds mandatory red-green development, tiered tests, fresh run evidence, and explicit mismatch handling. Vanilla `/opsx:apply` follows tasks but does not require a failing test first or proof that tests ran. |
-| 4. Review the change<br>Any reviewer · `corp-review` | Reviews coverage first, then spec conformance, test honesty, correctness, and deterministic checks. Reports blocker, serious, or minor findings with `file:line` and a concrete fix. It never approves or merges. | Runs `/opsx:verify <change-id>`; adds `--store <id>` for a store-owned change. If unavailable or not an OpenSpec change, reports that and continues. The report checks coverage and test existence, not whether tests ran. | `corp-code-review` combines the review disciplines: evidence before opinion, concrete findings, evaluate feedback instead of agreeing automatically, and verify again after fixes. | Direct: `bash tools/verify-docs.sh` → `gen-index.mjs --check` → `corp-lint.mjs` → `check-contract-split-brain.mjs`. The reviewer also inspects fresh test output from step 3. | Severity-ranked findings or one explicit clean result. A critical OpenSpec gap or failed verification check is a blocker. Humans retain approval and merge authority. | Turns OpenSpec's heuristic verification into only the first review input, then adds test honesty, correctness, deterministic gates, and file-specific fixes. This focuses human attention on actionable findings. |
-| 5. Build the manual test plan<br>Manual tester · `corp-test-plan` | Converts each approved scenario into prerequisites, steps, expected result, and requirement ID; adds regression cases for modified requirements and separate exploratory areas; posts the checklist to the tracker. | No OpenSpec command. Reads the delta scenarios and the living spec sections they modify. | No skill is invoked. This is Corp SDD role scaffolding. It applies behavior-first scenario discipline, and human tester additions outrank the generated checklist. | No Corp SDD script. | Tracker checklist. The command never marks a case passed; execution and final judgment stay with the tester. | Converts OpenSpec scenarios into a traceable, tester-owned checklist with regression and exploratory coverage. Vanilla OpenSpec stores scenarios but provides no manual-testing role flow or tracker handoff. |
-| 6. Generate automated-test scaffolds<br>Software development engineer in test · `corp-autotest` | Generates one behavior-level test skeleton per approved scenario; labels missing data or environment work as `TODO(<what>)`; never invents fixtures or accesses held-out gates; runs every runnable scaffold. | No OpenSpec command. Reads approved delta scenarios as the source of test behavior. | No skill is invoked. The command applies the behavior-over-implementation principle used by `corp-tdd`, but remains Corp SDD role scaffolding. | No Corp SDD script. Project-specific test commands run for runnable scaffolds. | Test skeletons plus run output. Unrunnable items remain labeled drafts; held-out suites stay agent-invisible and unchanged. | Extends each approved scenario into a behavioral test scaffold without inventing missing setup or exposing held-out gates. Vanilla OpenSpec provides no separate automated-testing role flow. |
-| 7. Archive after merge<br>Developer or release owner · `corp-archive` | Verifies the pull request is merged and `main` is current; folds the delta into living specs; writes an append-only architecture decision record; regenerates the capability index; commits, pushes, and posts a tracker completion note. | Template says `opsx archive`; exact port-specific spelling is not pinned. | `corp-verification` applies **verification-before-completion**. The post-merge Git and tracker handoff is Corp SDD-specific. | Direct: `node tools/gen-index.mjs`, then `bash tools/verify-docs.sh` → `gen-index.mjs --check` → `corp-lint.mjs` → `check-contract-split-brain.mjs`. Hook: `check-git-naming.sh` on commit and push. | Living specs, architecture decision record, index, archive commit, and tracker note. Exit after verification is green and push succeeds. **Current gap:** the documented `archive <change-id>...` subject fails the shipped naming hook. The store catalog updates later; this step does not run `aggregate-index.mjs`. | Adds decision provenance, generated discovery indexes, Git evidence, and tracker closure after OpenSpec folds the delta into living specs. This prevents the specification lifecycle from ending without organizational handoff. |
+The installer places `system-store` next to this repository. Product repositories are Git
+submodules under `system-store/submodules/`; no clone directory is maintained.
 
-## Fast product-team onboarding
+1. Discover project-bound repositories through the available MCP during setup stage 1.
+2. If MCP is unavailable, collect the same `name`, `url`, and `baseBranch` inventory manually.
+3. Validate the inventory and write `system-store/project-repositories.json`.
+4. Run `sync-submodules.sh`; it registers, initializes, and updates only declared submodules.
+5. Install the kit's commands, tools, and six self-contained `corp-*` skills.
+6. Resolve the local OpenSpec command names into the command placeholders.
+7. Run the acceptance checks before using the workflow.
 
-Onboarding is designed to be fast, easy, and low-risk: no big-bang migration and no need to document the entire legacy system first. The first result is a real delivered change, not a documentation project. Actual timing must be confirmed by the pilot.
+MCP improves discovery but is not an installation dependency. Upstream Superpowers is also
+optional because the required engineering disciplines are included in the kit.
 
-1. Select one product team, 2–3 related repositories, and one small real change.
-2. Install the shared Corp SDD kit once and give each role a short guided flow.
-3. Deliver the pilot without replacing the team's existing tools, roles, review, or testing process.
-4. Compare clarity, cycle time, defects, review effort, and team feedback with the baseline.
-5. Remove any friction, then expand to the next teams by opt-in; keep a rollback path.
+## Delivery lifecycle
 
-## Supporting automation outside the seven story steps
+| Step | Corp command | Required OpenSpec action | Repository-state gate |
+|---|---|---|---|
+| Specify | `corp-spec` | Run resolved `opsx new`, then `opsx continue` until `proposal.md` and `spec.md` exist. | Inspect first; prepare the configured base branch before creating a change branch. |
+| Plan | `corp-plan` | Run resolved `opsx continue` until `design.md` and `tasks.md` exist. | Require the exact tracked change branch and a clean state. |
+| Implement | `corp-implement` | Enter resolved `opsx apply`, then execute each task with Corp TDD. | Require the exact change branch; dirty work is allowed explicitly. |
+| Plan tests | `corp-test-plan` | Read the OpenSpec change and create scenario coverage. | Inspect and validate a local change branch when present. |
+| Run tests | `corp-autotest` | Update OpenSpec evidence after the test tiers finish. | Require the exact change branch; dirty work is allowed explicitly. |
+| Review | `corp-review` | Run resolved `opsx verify` before the deeper code review. | Inspect and validate a local change branch when present. |
+| Archive | `corp-archive` | Run resolved `opsx archive` after the pull request is merged. | Prepare and verify the configured base branch first. |
 
-These scripts exist in the starter kit but are not invoked directly by the current seven
-command bodies:
+Every command derives `REPO_ROOT`, `STORE_ROOT`, and tool paths at runtime. It never depends on a
+developer-specific absolute path or on the caller's current directory.
 
-- `check-openspec-root.sh` verifies that OpenSpec resolves to the current Git repository. The
-  setup runbook requires it before spec work, but `corp-spec` does not currently call it.
-- `sync-repos.sh` safely clones, adopts, and fast-forwards the repositories listed by the system
-  store. `aggregate-index.mjs` builds its thin cross-repository capability catalog.
-- `index-all.sh` builds the Zoekt code-search index over those clones and fails if symbol indexing
-  lacks Universal Ctags.
+## Proof
 
-The command and skill files are templates for a corporate agent CLI port. OpenSpec slash-command
-spelling, tracker and wiki tools, pull-request automation, and project test commands must be pinned
-and proven during that port's discovery step.
+Run the six scripts in `tests/` against both language kits. They cover submodule synchronization,
+branch safety, aggregation, indexing, path derivation, documentation scope, MCP fallback, explicit
+OpenSpec actions, and the absence of clone-era paths.

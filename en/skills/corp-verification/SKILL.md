@@ -15,7 +15,8 @@ produce evidence, the honest report is "implemented but unverified because <reas
    or something adjacent?
 2. Did anything change after your last verification run? If yes, re-run. Evidence expires on edit.
 3. Are all tasks.md boxes you ticked backed by evidence lines? Header updated?
-4. bash tools/verify-docs.sh — green?
+4. `REPO_ROOT="$(git rev-parse --show-toplevel)"`; then run
+   `bash "$REPO_ROOT/tools/verify-docs.sh"` — green?
 
 ## Failure honesty
 If tests fail: report the failure with output — never bury it, never "mostly passing".

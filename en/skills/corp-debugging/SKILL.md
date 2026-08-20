@@ -13,8 +13,8 @@ most expensive bugs you will ship.
    Cannot reproduce → you do not understand it yet; vary one factor at a time until you can.
 3. LOCATE the mechanism: trace from symptom to cause. In this stack, check boundaries in order:
    the failing unit itself → its direct inputs (what did it actually receive? log/inspect, don't
-   assume) → serialization/config boundaries (event-bus message shape, DI wiring — wrong bean
-   silently injected? profile/config value actually loaded?) → state (relational store/cache contents vs
+   assume) → serialization/config boundaries (Kafka message shape, Spring wiring — wrong bean
+   silently injected? profile/config value actually loaded?) → state (DB/Redis contents vs
    expectation) → only then upstream systems. Cross-component bugs are found at a boundary where
    reality stops matching assumption — find THAT boundary before touching code.
 4. FIX THE CLASS, verify, then ask: can this same mistake exist elsewhere? Fix the pattern (or
