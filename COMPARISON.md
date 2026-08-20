@@ -5,7 +5,6 @@ Updated: 2026-08-19. The OpenSpec side was audited against the official
 comes from the shipped commands, skills, scripts, configuration, and rollout guides in this
 repository — not from the presentation.
 
-Separate prospect presentation: [`docs/comparison/index.html`](docs/comparison/index.html).
 The existing presentation at `docs/index.html` is intentionally unchanged.
 
 ## Positioning
