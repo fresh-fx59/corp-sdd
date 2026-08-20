@@ -28,6 +28,11 @@ https://aiengineerhelper.com/posts/enterprise-spec-driven-development-ai-agents/
 The two trees are identical in substance; only the prose is translated. Code, file paths,
 commands, scripts, and the slide structure are the same in both.
 
+## Quick flow
+
+- [English schema](CORP-SDD-FLOW-SCHEMA.md)
+- [Русская схема](CORP-SDD-FLOW-SCHEMA-RU.md)
+
 ## What's in each tree
 
 - **`docs/`** — the SDD docs, in read order: handoff → design → implementation guide →
