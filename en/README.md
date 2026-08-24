@@ -36,7 +36,10 @@ required.
 - `skills/`: six self-contained Corp skills;
 - `templates/`: research, ADR, contract, port facts, and branch conventions;
 - `config/`: normalized inventory example and lefthook example;
-- `tests/`: acceptance tests maintained beside the distributable kit.
+- `slides/`: the talk deck and its editable source.
+
+The acceptance suites that gate this kit live at `tests/` in the repository root,
+beside the two language copies, and run against the shipped files.
 
 The template is deliberately not a nested Git repository. Setup copies it beside
 `corp-sdd`, initializes Git there, and never modifies or removes an existing store.

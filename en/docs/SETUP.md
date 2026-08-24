@@ -4,7 +4,30 @@ Run these stages after pulling or upgrading `corp-sdd`. Stop on every failed gat
 Record commands and outputs in your project handover. Never delete, reset, clean,
 rebase, force-checkout, or rewrite an existing repository during setup.
 
-## 0. Required inputs and durable roots
+## 0. Prerequisites, required inputs, and durable roots
+
+Prove the toolchain before anything else. Each line must print a version; a miss
+stops the install, because the failure otherwise lands mid-stage 3 with a
+half-populated store:
+
+```bash
+git --version        # >= 2.13, for `submodule --branch`
+node --version       # >= 18, runs the .mjs disposers
+rg --version         # used by the stage-6 placeholder proof
+lefthook version     # install through the approved internal channel first
+```
+
+The OpenSpec CLI is pinned and internal. The package is `@fission-ai/openspec`;
+the bare name `openspec` on the public registry is an unrelated empty `0.0.0`
+placeholder and will silently install nothing usable. Record the pinned version
+in `port-facts.md` and prove it once:
+
+```bash
+npx @fission-ai/openspec@<pinned-version> --version
+```
+
+On a restricted network, resolve that package through the approved internal
+mirror and note the resolved registry in your handover.
 
 Obtain `<project-id>`, the corporate agent port name, the pinned OpenSpec package
 version, the system-store remote URL and approved base branch, and internal forge
@@ -138,6 +161,11 @@ a stable `<store-id>` with the pinned OpenSpec CLI. Prove that `openspec store l
 returns that id and exact path. Do not run another OpenSpec command until its root
 is verified.
 
+Ids are a contract, not a label: cross-repo links resolve by id, so two agents
+installing the same project must produce the same string. Use `<project-id>-store`
+for `<store-id>` and the repository name from stage 1 for each repo id, both
+lower-case kebab-case. Record both in `port-facts.md`.
+
 ## 4. Materialize project repositories as submodules
 
 ```bash
@@ -165,10 +193,44 @@ For each path reported by `.gitmodules`:
 5. copy `config/lefthook.yml.example` to `lefthook.yml`, install lefthook through
    the approved internal channel, then run `lefthook install`;
 6. add a stable repository id at `openspec/repo.txt`, generate its index, and run
-   the root-derived `verify-docs.sh`.
+   the root-derived `verify-docs.sh`;
+7. declare the store in that repository's `openspec/config.yaml` so a spoke can
+   link the shared contract instead of restating it:
+
+   ```yaml
+   references:
+     - <store-id>
+   ```
+
+   Without this block `openspec show <spec-id> --type spec --store <store-id>`
+   cannot resolve — the fetch line `corp-spec` writes into every cross-repo delta
+   — and `check-contract-split-brain.mjs` exits 0 without checking anything, so a
+   pasted contract shape goes unnoticed.
 
 Initialize every submodule's OpenSpec root before invoking generated commands from
 inside it. This prevents the parent store root from capturing repository changes.
+
+If one submodule cannot be onboarded, finish the others, leave that repository
+un-onboarded rather than half-onboarded, and name it in the handover with the
+failing gate and its output. A partial repository is the one state the daily flow
+cannot detect.
+
+Append the write-boundary rule to the project instruction file that stage 2 proved
+the port reads, in every onboarded repository and in the store:
+
+```markdown
+## HARD RULE — disposer self-check
+After creating or editing ANY file under openspec/ or docs/, run:
+    bash "$(git rev-parse --show-toplevel)/tools/verify-docs.sh"
+Fix every ✗ (each error carries a remediation hint) and re-run until green
+BEFORE reporting work done or proposing a commit. Rejected writes are corrected
+by regenerating the content — never by loosening caps or deleting checks.
+CIRCUIT BREAKER: if the same error survives 3 fix attempts, STOP and ask a human —
+do not keep looping.
+```
+
+One script gates all three actors: the agent after a write, the human at
+pre-commit through lefthook, and CI as the backstop.
 
 ## 6. Install Corp commands and skills
 
@@ -189,7 +251,30 @@ If skills are unsupported, inline their bodies now and prove no unavailable skil
 reference remains. This fallback still installs the complete workflow without
 Superpowers.
 
-## 7. Prove hooks and guards
+## 7. Wire the CI backstop
+
+Adapt this to the self-hosted CI in use and smoke-test it before relying on it.
+Every spoke repository runs the same disposer the agent and the hook run:
+
+```bash
+bash "$(git rev-parse --show-toplevel)/tools/verify-docs.sh"
+```
+
+The system store runs the catalog job nightly and on spoke merges:
+
+```bash
+STORE_ROOT="$(git rev-parse --show-toplevel)"
+bash "$STORE_ROOT/tools/sync-submodules.sh" \
+  --inventory "$STORE_ROOT/project-repositories.json" --store-root "$STORE_ROOT"
+node "$STORE_ROOT/tools/aggregate-index.mjs" --strict   # a red repo fails the build, loudly
+git add catalog.json catalog.md
+git diff --cached --quiet || git commit -m "chore(<TICKET>): refresh catalog" && git push
+```
+
+Keep contract-test, schema-compatibility, and migration-lint jobs in separate
+credential-scoped pipelines; the agent-facing job must not share their credentials.
+
+## 8. Prove hooks and guards
 
 Run all tools against temporary bad inputs before using a live change:
 
@@ -201,7 +286,7 @@ Run all tools against temporary bad inputs before using a live change:
 
 Never weaken a guard to make this stage green.
 
-## 8. Final acceptance
+## 9. Final acceptance
 
 After the last edit, syntax-check the installed scripts and run sync again to prove
 idempotence:
@@ -220,3 +305,21 @@ Also verify each submodule's OpenSpec root, configured base branch, current stat
 hooks, docs checks, installed commands, and skills. Commit the store and each
 repository separately. Report repository source (`mcp` or `manual`) and paste all
 fresh evidence.
+
+Files on disk are not a working install. Invoke one Corp command inside the port
+itself — run `corp-spec` against a throwaway ticket in one onboarded repository,
+confirm it reaches the interview and writes `openspec/changes/<id>/proposal.md`,
+then delete the branch and the change folder. An install that has never executed a
+command in the real port is unproven, whatever the file listing says.
+
+Close the install only when every line holds:
+
+- [ ] store live: sync + `aggregate-index --strict` green in the nightly CI job;
+- [ ] each onboarded repository: disposer green in pre-commit and in CI, index and
+      `repo.txt` committed;
+- [ ] commands and skills installed, no `<opsx-*-command>` placeholder left;
+- [ ] one Corp command executed end-to-end in the port;
+- [ ] named champion per team and a named harness owner who owns the pins, the
+      catalog job, and the port re-probes;
+- [ ] the exception path written down: any story may skip the flow, with the reason
+      recorded in the tracker.

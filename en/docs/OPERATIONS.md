@@ -98,9 +98,55 @@ The tool reads `.gitmodules`, validates every path before indexing, requires rea
 Universal Ctags, and reports missing registered submodules. Never maintain a
 second repository list for search.
 
+## Operating rules
+
+1. Prompts advise, the disposer and CI enforce. Never fix a red check by weakening it.
+2. Caps reject, never trim. The agent regenerates; humans never hand-repair generated files.
+3. The central catalog is a routing hint. The repository index outranks it; the
+   repository outranks its own index.
+4. Specs are durable, plans are disposable. Regenerate design and tasks when in doubt.
+5. Every spec-versus-code mismatch becomes a delta. That is the spec base growing,
+   not a failure.
+6. The same error three times: stop and ask a human.
+
+## Measure adoption
+
+Record these in a `baselines/` note in the store before the first team starts, then
+on the same period afterwards. Both are pure Git and need no CI data:
+
+```bash
+# merges in the trailing 90 days — deploy-frequency proxy until CI data is wired
+git log --merges --since="90 days ago" --format=%cI | wc -l
+# archived changes per repository — the adoption counter
+ls openspec/changes/archive 2>/dev/null | wc -l
+```
+
+Squash-merge repositories have no merge commits: count merged pull-request subjects
+with `git log --grep` instead.
+
+Anti-gaming check, per archived change: the proposal must predate the first
+implementation commit on that branch.
+
+```bash
+git log --diff-filter=A --format=%ct -- "openspec/changes/<id>/proposal.md" | tail -1
+```
+
+A spec written after the code is flow theater; count it as non-adoption.
+
+Ask the team these five questions quarterly, anonymously, at team level, on a 1–5
+scale, plus one free-text answer. Use them verbatim so the periods stay comparable:
+
+1. How satisfied are you with your day-to-day development workflow?
+2. How often can you work on a task without losing flow to friction or waiting?
+3. How would you rate the quality of code review you receive?
+4. How much does the SDD flow help versus hinder your work?
+5. Would you recommend the flow to a colleague team?
+
+Free text: what one thing should we fix?
+
 ## Upgrade
 
-Pull `corp-sdd`, review its changes, then repeat setup stages 1, 2, and 5–8.
+Pull `corp-sdd`, review its changes, then repeat setup stages 1, 2, and 5–9.
 Do not overwrite the system store from `system-store-template/`. Copy current
 tools, commands, and skills into their discovered destinations, resolve OpenSpec
 placeholders in installed command copies, run negative tests, and commit each Git
