@@ -101,8 +101,15 @@ the installed command and remove its `Follow skill ...` sentence.
 
 ## 3. Create or verify the sibling system store
 
-For a first local install, choose one path. If the system-store remote already
-contains the project store, clone its approved branch beside `corp-sdd`:
+Three cases, and the machine decides which one you are in — never guess, and never
+ask the operator something Git can answer:
+
+```bash
+git ls-remote --heads "<system-store-remote-url>" "<system-store-base-branch>"
+```
+
+**The store already exists on the remote** (the probe printed a ref) — you are the
+second developer or later. Clone it; do not create anything:
 
 ```bash
 test ! -e "$CORP_SYSTEM_STORE_ROOT"
@@ -111,8 +118,12 @@ bash "$CORP_SDD_ROOT/scripts/tools/repository-state.sh" prepare-base --repo "$CO
 git -C "$CORP_SYSTEM_STORE_ROOT" config corp.baseBranch "<system-store-base-branch>"
 ```
 
-Only when the project is explicitly creating a new empty system store, start it
-from the shipped template:
+Running the template path here would `git init` a second, unrelated history against
+a remote that already holds the project's store. That is the one mistake in this
+stage that costs a rewrite rather than a retry.
+
+**The project is explicitly creating a new empty store** (the probe printed nothing,
+and this is the first install anywhere) — start from the shipped template:
 
 ```bash
 test ! -e "$CORP_SYSTEM_STORE_ROOT"
@@ -122,9 +133,9 @@ git -C "$CORP_SYSTEM_STORE_ROOT" remote add origin "<system-store-remote-url>"
 git -C "$CORP_SYSTEM_STORE_ROOT" config corp.baseBranch "<system-store-base-branch>"
 ```
 
-For an existing local install, do not copy or clone over it. Prove that it is an
-independent Git root, then gate its branch and worktree before changing inventory
-or installed files:
+**The store is already on this machine** — do not copy or clone over it. Prove it is
+an independent Git root, then gate its branch and worktree before touching the
+inventory or the installed files:
 
 ```bash
 test "$(git -C "$CORP_SYSTEM_STORE_ROOT" rev-parse --show-toplevel)" = "$CORP_SYSTEM_STORE_ROOT"
@@ -133,7 +144,7 @@ bash "$CORP_SDD_ROOT/scripts/tools/repository-state.sh" prepare-base --repo "$CO
 git -C "$CORP_SYSTEM_STORE_ROOT" config corp.baseBranch "<system-store-base-branch>"
 ```
 
-The state gate refuses dirty work, stashes, detached HEAD, unpublished commits,
+The state gate refuses dirty worktrees, stashes, detached HEAD, unpublished commits,
 wrong upstreams, and divergence. It only performs a verified fast-forward.
 
 Place the normalized stage-1 result at
