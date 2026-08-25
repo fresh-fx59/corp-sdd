@@ -1,8 +1,10 @@
 ---
 description: Draft the delta spec(s) for a story via interview; fan out across repos when needed (analyst flow)
-version: 1.0.0
+corp-version: 2026-08-25.15
 ---
 You are drafting the spec for story {{args}}.
+`<change-id>` is the OpenSpec change folder name; `<openspec>` is the OpenSpec CLI invocation setup
+resolved.
 Follow skills corp-drill-down (all system facts) and corp-verification (all done-claims).
 
 1. READ + INTERVIEW, once. Fetch the story, wiki pages, and attachments through the configured
@@ -14,6 +16,10 @@ Follow skills corp-drill-down (all system facts) and corp-verification (all done
    corp-drill-down (central catalog → repo index → live files; repo wins; ≤3 hops). Verify every
    contract fact against live code. Interview the analyst — ONE question at a time,
    multiple-choice preferred — until requirements and Given/When/Then scenarios are unambiguous.
+   Every scenario must name what a tester SENDS and what they OBSERVE from outside the running system
+   — a request, an event, a row, a status code. A requirement checkable only from inside is either
+   reworded into an observable one now, while it is a sentence, or handed to `corp-autotest` and said
+   so out loud. This is the cheapest moment in the whole flow to find it.
    Interview ONCE at story level even if several repos are involved: the requirements are shared,
    so interviewing per repo asks the same questions N times and invites N different answers.
 
@@ -27,15 +33,71 @@ Follow skills corp-drill-down (all system facts) and corp-verification (all done
    which repos, which is the producer, which tickets already exist, which you would create, and
    how many PRs this will open. Never fan out silently.
 
-3. SINGLE REPO. Run `bash "$REPO_ROOT/tools/repository-state.sh" prepare-base`; stop on failure.
-   Create `feature/<TICKET>` from the prepared configured base, publish its upstream, then run
-   `bash "$REPO_ROOT/tools/repository-state.sh" assert-change <TICKET>`. Run
-   `<opsx-new-command> <change-id>`, then `<opsx-continue-command> <change-id>` until both
-   `proposal.md` and the delta `spec.md` exist. Stop before design and tasks. Append verified
-   facts to research.md as pointers (path#Lx-Ly + one-line finding).
-   Do NOT create design.md or tasks.md — planning happens at pull time.
-   Run `bash "$REPO_ROOT/tools/verify-docs.sh"`; fix until green.
-   HANDOVER (do this yourself — the analyst never touches git): commit the change folder, push, and
+3. SINGLE REPO. Place yourself BEFORE creating anything.
+   a. TICKET GATE. The branch name needs a real tracker key (`ABCD-1234`). If `{{args}}` carries none
+      and the story has none, there is nothing to name the branch after: ask the user ONCE —
+      (1) create the ticket now through the tracker integration, (2) they give you the key,
+      (3) draft the spec with NO branch and NO change folder, and say plainly it cannot be handed
+      over until a ticket exists. NEVER invent a key, never use the story title, never create
+      `feature/NO-TICKET`.
+   b. WHERE YOU ARE. The branch may already exist, and you may already be on it. Look first:
+      ```bash
+      git -C "$REPO_ROOT" rev-parse --abbrev-ref HEAD
+      git -C "$REPO_ROOT" show-ref --verify --quiet refs/heads/feature/<TICKET> && echo local
+      git -C "$REPO_ROOT" ls-remote --heads origin feature/<TICKET>
+      ```
+      - ALREADY ON `feature/<TICKET>` → do NOT run `prepare-base`; it checks out the base and would
+        take you off your work. Run `assert-change <TICKET> --allow-dirty` and continue here. If
+        `openspec/changes/<change-id>/` already exists, RESUME it — never re-create it, never
+        `<openspec> new change` a second time.
+      - EXISTS LOCALLY, you are elsewhere → `git checkout feature/<TICKET>`, then `assert-change
+        <TICKET> --allow-dirty`, then resume as above.
+      - EXISTS ON ORIGIN ONLY → `git fetch origin`, then
+        `git checkout -b feature/<TICKET> --track origin/feature/<TICKET>`, then `assert-change`.
+      - NOWHERE → run `bash "$REPO_ROOT/tools/repository-state.sh" prepare-base`; stop on failure.
+        Create `feature/<TICKET>` from the prepared configured base, publish its upstream with
+        `git push -u origin feature/<TICKET>`, then run
+        `bash "$REPO_ROOT/tools/repository-state.sh" assert-change <TICKET>`.
+      Ask the user ONE question, printing the state you found, whenever it is contradictory: local and
+      remote have diverged, the local branch tracks something other than `origin/feature/<TICKET>`, or
+      the existing change folder belongs to a different ticket. Do not guess which one wins.
+   c. Run `<openspec> new change <change-id>` — skip it when the change folder already exists.
+      Then ask the CLI for ONE artifact at a time. The artifact ids are fixed by the schema, and
+      `<openspec> status --change <change-id> --json` lists them with their paths and state; for
+      `spec-driven` they are `proposal`, `specs`, `design`, `tasks`. You create only the first two:
+      ```bash
+      <openspec> instructions proposal --change <change-id> --json
+      <openspec> instructions specs    --change <change-id> --json
+      ```
+      Each call returns the guidance and the exact output path for that artifact; write it, then run
+      the next. Stop when `proposal.md` and the delta `spec.md` exist — `design` and `tasks` belong to
+      `corp-plan`, which asks for them the same way. Append verified facts to research.md as pointers
+      (path#Lx-Ly + one-line finding).
+      Split the tester's facts by who owns them. Facts this change DEFINES — a new endpoint, a new
+      field, a new topic, the error contract — are normative: they belong in the delta spec, in the
+      requirement text and its scenarios, where they are reviewed and archived. Facts the change only
+      DISCOVERS about the system as it already is go to research.md under a heading
+      `## OBSERVABLE CONTRACT`, as pointers: per endpoint — method, full path, request and response
+      field names and types; per topic — name, message key, event shape; per store — table and column
+      names, and which columns the flow writes, normalizes or enriches and from where; per failure —
+      the status code and error body, and the dead-letter destination when the flow has one. One
+      pointer per fact. `corp-test-plan` renders the tester's payloads from the spec's scenarios and
+      this block, so a missing entry costs the tester a guess.
+      Do NOT create design.md or tasks.md — planning happens at pull time.
+   In the delta spec the STRUCTURE keywords stay English — `## ADDED|MODIFIED|REMOVED|RENAMED
+   Requirements` and `### Requirement: <text>` — because openspec hard-codes them; the requirement
+   text and the scenario headings may be Russian (`#### Сценарий: …` is valid: upstream counts any
+   level-4 heading). Every ADDED or MODIFIED requirement needs at least one scenario, and its text
+   should carry SHALL or MUST.
+   Run `bash "$REPO_ROOT/tools/verify-docs.sh"`; fix until green. Its corp-lint rule enforces all
+   of the above, so a heading openspec would reject dies here, not at archive time.
+   Then ask openspec itself — corp-lint mirrors the rules, the CLI IS them:
+   `<openspec> validate <change-id> --type change --strict --json`. Fix until `"valid": true`;
+   never hand over a change the CLI rejects.
+   HANDOVER (do this yourself — the analyst never touches git): stage the change folder BY PATH
+   (`git add openspec/changes/<change-id>`), never `git add -A` — the repository holds local-only
+   settings and credential files that are not yours to commit, and a file you created is untracked
+   until you add it. Commit `docs(<TICKET>): <text>`, push, and
    open (or update) the spec PR. Post the spec summary + PR link back to the story. Done.
 
 4. CROSS-REPO — TICKETS FIRST, driven by what already exists.
@@ -46,29 +108,59 @@ Follow skills corp-drill-down (all system facts) and corp-verification (all done
      per repo, or will you?" Follow the answer. If they create them, wait and re-read.
    The PARENT story is the store-contract ticket — it does not get a child of its own.
 
-5. CONTRACT FIRST. In the SYSTEM STORE, set
+5. CONTRACT FIRST. WHERE YOU STAND DECIDES WHERE THE FILES LAND. Every path below is
+   resolved by `git rev-parse --show-toplevel`, and a registered submodule is its own git root —
+   so `cd` first, then resolve. You start this command in the SYSTEM STORE: `cd` to it if you are
+   not there, set
    `STORE_ROOT="$(git rev-parse --show-toplevel)"`, then run
    `bash "$STORE_ROOT/tools/repository-state.sh" prepare-base`. Create and publish
    `feature/<parent-ticket>`, then run
    `bash "$STORE_ROOT/tools/repository-state.sh" assert-change <parent-ticket>`. Run
-   `<opsx-new-command> <contract-change-id>` then `<opsx-continue-command> <contract-change-id>`
-   until its proposal and contract delta exist. Use `store-contract.md`; shape facts live there
-   and nowhere else. Run `bash "$STORE_ROOT/tools/verify-docs.sh"`, commit, push, open the store PR, and
+   `<openspec> new change <contract-change-id>`, then
+   `<openspec> instructions proposal --change <contract-change-id> --json` and
+   `<openspec> instructions specs --change <contract-change-id> --json`, one at a time, until its
+   proposal and contract delta exist. They land in the STORE's own
+   `openspec/changes/<contract-change-id>/` — proposal.md, the contract delta spec and research.md
+   all belong to the store, on the parent ticket's branch. Use `store-contract.md`; shape facts
+   live there and nowhere else. Run `bash "$STORE_ROOT/tools/verify-docs.sh"` and
+   `<openspec> validate <contract-change-id> --type change --strict --json`; fix until both are
+   green and `"valid": true`. Then commit, push, open the store PR, and
    post its link on the parent story.
 
-6. PER REPO, one at a time:
-   a. Set `REPO_ROOT="$(git rev-parse --show-toplevel)"`. Run
-      `bash "$REPO_ROOT/tools/repository-state.sh" prepare-base`, create and publish
-      `feature/<child-ticket>`, then run
-      `bash "$REPO_ROOT/tools/repository-state.sh" assert-change <child-ticket>`.
-   b. Run `<opsx-new-command> <change-id>` then `<opsx-continue-command> <change-id>` until the
+6. PER REPO, one at a time. Each child ticket owns exactly one repository, and its artifacts live
+   INSIDE that repository, never in the store:
+   a. Enter the submodule first — `cd "$STORE_ROOT/submodules/<repo>"` — and only then set
+      `REPO_ROOT="$(git rev-parse --show-toplevel)"`. Verify it: `REPO_ROOT` must be the submodule
+      path, not `STORE_ROOT`. If they are equal you are still in the store and every artifact would
+      land in the wrong repository — stop and cd. Place yourself exactly as in step 3b, using
+      the child ticket: if you are already on `feature/<child-ticket>` skip `prepare-base` and resume;
+      if the branch exists locally or on origin, check it out; only when it exists nowhere run
+      `bash "$REPO_ROOT/tools/repository-state.sh" prepare-base`, create and publish it. Finish with
+      `bash "$REPO_ROOT/tools/repository-state.sh" assert-change <child-ticket>`. The child tickets
+      come from step 4, so the ticket gate is already satisfied here.
+   b. Run `<openspec> new change <change-id>` from inside the submodule, so the change folder is
+      that repository's own `openspec/changes/<change-id>/` (skip when it exists), then, one artifact at a time,
+      `<openspec> instructions proposal --change <change-id> --json` and
+      `<openspec> instructions specs --change <change-id> --json` — those two only — until the
       proposal and that repo's OWN delta spec exist. The delta LINKS the store
       contract by spec id and store id — never restates the shape. Include the fetch line:
-      `openspec show <contract-spec-id> --type spec --store <store-id>`
+      `<openspec> show <contract-spec-id> --type spec --store <store-id>`
       Append verified facts to research.md as pointers. No design.md, no tasks.md.
+      Split the tester's facts by who owns them. Facts this change DEFINES — a new endpoint, a new
+      field, a new topic, the error contract — are normative: they belong in the delta spec, in the
+      requirement text and its scenarios, where they are reviewed and archived. Facts the change only
+      DISCOVERS about the system as it already is go to research.md under a heading
+      `## OBSERVABLE CONTRACT`, as pointers: per endpoint — method, full path, request and response
+      field names and types; per topic — name, message key, event shape; per store — table and column
+      names, and which columns the flow writes, normalizes or enriches and from where; per failure —
+      the status code and error body, and the dead-letter destination when the flow has one. One
+      pointer per fact. `corp-test-plan` renders the tester's payloads from the spec's scenarios and
+      this block, so a missing entry costs the tester a guess.
    c. Run `bash "$REPO_ROOT/tools/verify-docs.sh"`; fix until green. The split-brain lint must pass; if it
-      fires you restated a contract fact — delete it and link instead.
-   d. Commit as feat(<child-ticket>): <text>, push, open the PR, post the PR link to the ticket.
+      fires you restated a contract fact — delete it and link instead. Then run
+      `<openspec> validate <change-id> --type change --strict --json`; fix until `"valid": true`.
+   d. Stage the change folder by path, commit as `docs(<child-ticket>): <text>`, push, open the PR,
+      post the PR link to the ticket. Never `git add -A`; never leave the step uncommitted.
 
 7. GATES. On every implementation child record: approval order (contract first), implementation
    order (producer first), merge order (producer → consumers → store contract last), and that a
@@ -77,5 +169,6 @@ Follow skills corp-drill-down (all system facts) and corp-verification (all done
 8. On the parent story, post the ticket → repo → role map and the intended merge window.
 
 9. VERIFY before reporting: every child is linked and mapped to a repo; every repo has a branch,
-   a pushed commit and an open PR; verify-docs green in each. Paste the evidence.
+   a pushed commit and an open PR; verify-docs green and openspec `validate --strict` reporting
+   `"valid": true` in each. Paste the evidence.
    Never claim done without it.

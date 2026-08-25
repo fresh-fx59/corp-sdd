@@ -1,15 +1,49 @@
 #!/usr/bin/env node
-// corp-sdd-version: 1.0.0
+// corp-version: 2026-08-25.15
 // corp-lint.mjs — deterministic disposer for agent-written docs. Zero dependencies.
-// Scope: openspec/, docs/, .qwen/ only (never lints build output or source code docs).
+// Scope: openspec/, docs/, and the agent home of whatever CLI this port runs
+// (never lints build output or source code docs). The agent home is NEVER hard-coded:
+// it is CORP_AGENT_DIR, else `git config corp.agentDir`, else the one dot-directory at the
+// repository root that contains a `skills/` subdirectory. Root instruction files
+// (an AGENTS.md-style file under any name) are linted by shape: ALL-CAPS .md at the root,
+// minus the usual project files.
 // Checks: hard file caps, index<->spec bijection + index schema, relative links + anchors,
 // embedded snippets vs source, tasks.md state header, delta-spec sections.
 // Every ERROR carries a remediation hint. Exit 1 on any ERROR; WARNs never block.
 import { readFileSync, readdirSync, existsSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
 import { join, dirname, resolve, relative, sep } from 'node:path';
 
 const ROOT = resolve(process.argv[2] ?? '.');
-const SCOPES = ['openspec', 'docs', '.qwen'].map(d => join(ROOT, d)).filter(existsSync);
+
+// The agent home is discovered, never named: a port may call it anything.
+function discoverAgentDir() {
+  const configured = process.env.CORP_AGENT_DIR
+    || (() => { try { return execFileSync('git', ['-C', ROOT, 'config', '--get', 'corp.agentDir'],
+      { encoding: 'utf8' }).trim(); } catch { return ''; } })();
+  if (configured) return configured.replace(/^\.\//, '').replace(/\/+$/, '');
+  const found = readdirSync(ROOT, { withFileTypes: true })
+    .filter(e => e.isDirectory() && e.name.startsWith('.') && e.name !== '.git'
+                 && existsSync(join(ROOT, e.name, 'skills')))
+    .map(e => e.name)
+    .sort();
+  if (found.length > 1) {
+    console.error(`✗ ${found.join(', ')}: more than one agent home found`);
+    console.error(`   ↳ set CORP_AGENT_DIR or \`git config corp.agentDir <dir>\` so the lint knows which one to read`);
+    process.exit(1);
+  }
+  return found[0] ?? '';
+}
+const AGENT_DIR = discoverAgentDir();
+const SCOPES = ['openspec', 'docs', AGENT_DIR].filter(Boolean)
+  .map(d => join(ROOT, d)).filter(existsSync);
+
+// Root instruction files (the port's AGENTS.md analogue, under whatever name it uses).
+const ROOT_DOC_SKIP = new Set(['README.md', 'LICENSE.md', 'CHANGELOG.md', 'CONTRIBUTING.md',
+  'SECURITY.md', 'CODE_OF_CONDUCT.md', 'NOTICE.md']);
+const rootDocs = readdirSync(ROOT, { withFileTypes: true })
+  .filter(e => e.isFile() && /^[A-Z0-9_]+\.md$/.test(e.name) && !ROOT_DOC_SKIP.has(e.name))
+  .map(e => join(ROOT, e.name));
 
 // ---- hardcoded caps (lines). The write-boundary contract: exceed => rejected, never trimmed.
 const CAPS = [
@@ -18,7 +52,7 @@ const CAPS = [
   [/(^|\/)openspec\/changes\/.+\/tasks\.md$/, 200],
   [/(^|\/)openspec\/changes\/.+\/research\.md$/, 400],
   [/(^|\/)openspec\/changes\/.+\/proposal\.md$/, 200],
-  [/(^|\/)\.qwen\/skills\/.+\.md$/, 250],
+  [new RegExp(`(^|/)${AGENT_DIR.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&')}/skills/.+\\.md$`), 250],
 ];
 
 const errors = [], warns = [];
@@ -34,10 +68,11 @@ function* walk(dir) {
   }
 }
 const rel = p => relative(ROOT, p).split(sep).join('/');
-const mdFiles = SCOPES.flatMap(s => [...walk(s)]).filter(p => p.endsWith('.md'));
+const mdFiles = [...SCOPES.flatMap(s => [...walk(s)]).filter(p => p.endsWith('.md')), ...rootDocs];
 
-// GitHub-style anchor slug (basic: covers latin headings; extend for cyrillic if needed)
-const slug = h => h.toLowerCase().trim().replace(/[^\w\s-]/g, '').replace(/\s+/g, '-');
+// GitHub-style anchor slug. Unicode-aware on purpose: `\w` is ASCII-only, so a Cyrillic
+// heading used to slug to the empty string and EVERY Russian anchor was reported broken.
+const slug = h => h.toLowerCase().trim().replace(/[^\p{L}\p{N}\s_-]/gu, '').replace(/\s+/g, '-');
 const headingSlugs = txt => new Set(
   [...txt.matchAll(/^#{1,6}\s+(.+?)\s*$/gm)].map(m => slug(m[1]))
 );
@@ -172,12 +207,92 @@ for (const p of mdFiles.filter(p => /(^|\/)openspec\/changes\/[^/]+\/tasks\.md$/
   for (const [, n] of bad) err(r, `malformed checkbox at line ${n}`, 'use "- [ ] task" or "- [x] task" (indentation for sub-tasks is fine)');
 }
 
-// ---- 6. delta specs must use delta sections
+// ---- 6. delta specs: only the checks OpenSpec itself does NOT make.
+// `openspec validate <change> --type change --strict --json` is the authority on delta-spec
+// grammar, and every command that writes or reviews a spec runs it. Measured against the real
+// CLI (1.10.0, 2026-08-25), it already errors on: a missing delta section, a `### ` heading that
+// is not `### Requirement:` when it is the ONLY heading, an ADDED/MODIFIED requirement with no
+// scenario, and a delta section with no requirement at all. Those four checks were removed from here rather than kept as a
+// second, drifting implementation of the upstream parser.
+// What survives below is what the CLI is measurably blind to:
+//   * a requirement heading OUTSIDE any delta section — upstream drops it silently (valid=true),
+//     so this error is the only thing between an agent and a lost requirement;
+//   * a `### ` heading that is not `### Requirement:` in a file that ALSO has a good one —
+//     upstream logs INFO, keeps valid=true, and drops that requirement from the deltas;
+//   * SHALL/MUST — upstream agrees, but under --strict it BLOCKS; here it stays advisory;
+//   * observability — no upstream concept at all.
+// A `#### Сценарий: …` is a valid scenario upstream (SCENARIO_HEADER = /^####\s+/, any wording);
+// only the structure keywords `Requirements` and `Requirement:` are hard-coded English.
+const DELTA_SECTION = /^##\s+(ADDED|MODIFIED|REMOVED|RENAMED)\s+Requirements\s*$/im;
 for (const p of mdFiles.filter(p => /(^|\/)openspec\/changes\/[^/]+\/specs\/.+\.md$/.test(rel(p)))) {
   const r = rel(p);
   const txt = readFileSync(p, 'utf8');
-  if (!/^## (ADDED|MODIFIED|REMOVED) Requirements$/m.test(txt))
-    err(r, 'no ADDED/MODIFIED/REMOVED section', 'delta specs describe changes, not full state — use the delta sections');
+  const body = stripCode(txt);
+  // No delta section at all is an openspec ERROR ("No delta sections found …"); nothing to add here.
+  if (!DELTA_SECTION.test(body)) continue;
+
+  // Walk the delta sections so each requirement is judged under the operation that owns it.
+  const lines = body.split('\n');
+  let op = null;              // current delta operation, or null before the first one
+  let reqName = null;         // current requirement heading text
+  let reqLine = 0;
+  let scenarios = 0;          // level-4 headers seen in the current requirement
+  let reqBody = '';
+  let reqAll = '';            // heading + body + scenario text, for the observability check
+
+  // A tester must be able to check the requirement from OUTSIDE the running system. This looks for
+  // any sign of an observable surface: an HTTP verb or status code, a path, a topic or table, a
+  // query, a queue. It is a WARNING like SHALL/MUST above — a hint at spec time, never a blocker,
+  // because no regex can prove observability.
+  const OBSERVABLE = /\b(GET|POST|PUT|PATCH|DELETE|HTTP|[1-5]\d\d\b|topic|топик|table|таблиц|column|колонк|SELECT|INSERT|payload|запрос|ответ|response|request|event|событ|dead-letter|DLQ|endpoint|эндпоинт)\b|\s\/[a-z0-9]/i;
+
+  const closeRequirement = () => {
+    if (reqName === null) return;
+    if ((op === 'ADDED' || op === 'MODIFIED') && !/\b(SHALL|MUST)\b/.test(reqBody))
+      warn(r, `requirement "${reqName}" (line ${reqLine}) states no SHALL/MUST`,
+           'openspec treats the SHALL/MUST keyword as guidance unless --strict, but the normative verb belongs in the requirement text');
+    if ((op === 'ADDED' || op === 'MODIFIED') && scenarios > 0 && !OBSERVABLE.test(reqAll))
+      warn(r, `requirement "${reqName}" (line ${reqLine}) names no observable surface`,
+           'a black-box tester must be able to send and observe it: name the endpoint, topic, table, status code or query in a scenario — a requirement only checkable from inside belongs to corp-autotest, not corp-test-plan');
+    reqName = null;
+  };
+
+  lines.forEach((line, i) => {
+    const delta = line.match(/^##\s+(ADDED|MODIFIED|REMOVED|RENAMED)\s+Requirements\s*$/i);
+    if (delta) { closeRequirement(); op = delta[1].toUpperCase(); return; }
+    if (/^##\s+/.test(line)) { closeRequirement(); op = null; return; }
+    if (/^###\s+/.test(line)) {
+      closeRequirement();
+      const heading = line.replace(/^###\s+/, '').trim();
+      const named = heading.match(/^Requirement:\s*(\S.*)$/i);
+      // openspec reports this as INFO only, and the change still validates as long as ONE good
+      // requirement parsed — the mistyped one is dropped from the deltas and never reaches the
+      // living spec. Measured on 1.10.0: two requirements in the file, `deltaCount: 1`,
+      // `valid: true`. A silently lost requirement is ours to catch.
+      if (!named) {
+        err(r, `heading "### ${heading}" (line ${i + 1}) is not a requirement heading`,
+            'use "### Requirement: <text>" verbatim — openspec ignores any other form (INFO only) and drops the requirement from the delta, so it silently never reaches the living spec; only the <text> may be Russian');
+        reqName = null;
+        return;
+      }
+      if (op === null) {
+        err(r, `requirement "${named[1]}" (line ${i + 1}) sits outside a delta section`,
+            'put every requirement under "## ADDED|MODIFIED|REMOVED|RENAMED Requirements"');
+      }
+      reqName = named[1];
+      reqLine = i + 1;
+      scenarios = 0;
+      reqBody = '';
+      reqAll = named[1] + '\n';
+      return;
+    }
+    if (reqName !== null) {
+      reqAll += line + '\n';
+      if (/^####\s+/.test(line)) scenarios += 1;
+      else reqBody += line + '\n';
+    }
+  });
+  closeRequirement();
 }
 
 // ---- report

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# corp-sdd-version: 1.0.0
+# corp-version: 2026-08-25.15
 # repository-state.sh — inspect and enforce the Git state expected by Corp SDD.
 # Never resets, cleans, rebases, force-checks out, mutates stashes, or deletes work.
 set -uo pipefail
@@ -9,7 +9,8 @@ usage() {
 usage:
   bash repository-state.sh inspect [--repo <path>] [--base <branch>]
   bash repository-state.sh prepare-base [--repo <path>] [--base <branch>]
-  bash repository-state.sh assert-change <TICKET> [--repo <path>] [--allow-dirty]
+  bash repository-state.sh assert-archivable [--repo <path>] [--base <branch>]
+  bash repository-state.sh assert-change <TICKET> [--repo <path>] [--allow-dirty] [--checkout]
 EOF
 }
 
@@ -26,18 +27,24 @@ fi
 REPO="."
 BASE_OVERRIDE="${CORP_BASE_BRANCH:-}"
 ALLOW_DIRTY=0
+CHECKOUT=0
 while [ "$#" -gt 0 ]; do
   case "$1" in
     --repo) REPO=${2:-}; shift 2 ;;
     --base) BASE_OVERRIDE=${2:-}; shift 2 ;;
     --allow-dirty) ALLOW_DIRTY=1; shift ;;
+    --checkout) CHECKOUT=1; shift ;;
     -h|--help) usage; exit 0 ;;
     *) echo "✗ unknown argument: $1" >&2; usage; exit 2 ;;
   esac
 done
-case "$MODE" in inspect|prepare-base|assert-change) ;; *) echo "✗ unknown mode: $MODE" >&2; usage; exit 2 ;; esac
+case "$MODE" in inspect|prepare-base|assert-archivable|assert-change) ;; *) echo "✗ unknown mode: $MODE" >&2; usage; exit 2 ;; esac
 if [ "$MODE" != assert-change ] && [ "$ALLOW_DIRTY" -eq 1 ]; then
   echo "✗ --allow-dirty is valid only with assert-change" >&2
+  exit 2
+fi
+if [ "$MODE" != assert-change ] && [ "$CHECKOUT" -eq 1 ]; then
+  echo "✗ --checkout is valid only with assert-change" >&2
   exit 2
 fi
 
@@ -95,8 +102,13 @@ fi
 
 branch=$(git -C "$REPO" symbolic-ref --quiet --short HEAD 2>/dev/null || true)
 upstream=$(git -C "$REPO" rev-parse --abbrev-ref --symbolic-full-name '@{u}' 2>/dev/null || true)
+# `dirty` counts TRACKED changes only. Untracked files are never a reason to stop: a working
+# repository legitimately holds local-only settings, credential files and scratch output that
+# must not be committed, and blocking on them pushes the operator into `git add` chores or,
+# worse, into committing a secret. They are reported, never enforced.
 dirty=0
-[ -n "$(git -C "$REPO" status --porcelain)" ] && dirty=1
+[ -n "$(git -C "$REPO" status --porcelain --untracked-files=no)" ] && dirty=1
+untracked=$(git -C "$REPO" ls-files --others --exclude-standard | wc -l | tr -d ' ')
 stash_count=$(git -C "$REPO" stash list | wc -l | tr -d ' ')
 ahead=0
 behind=0
@@ -112,6 +124,7 @@ print_state() {
   printf 'branch=%s\n' "${branch:-DETACHED}"
   printf 'upstream=%s\n' "${upstream:-NONE}"
   printf 'dirty=%s\n' "$dirty"
+  printf 'untracked=%s\n' "$untracked"
   printf 'stash_count=%s\n' "$stash_count"
   printf 'ahead=%s\n' "$ahead"
   printf 'behind=%s\n' "$behind"
@@ -133,14 +146,48 @@ die_state() {
 
 [ -n "$branch" ] || die_state "detached HEAD" "  ↳ inspect it: git -C \"$REPO\" log -1 --oneline"
 if [ "$dirty" -eq 1 ] && { [ "$MODE" != assert-change ] || [ "$ALLOW_DIRTY" -eq 0 ]; }; then
-  die_state "working tree is dirty" "  ↳ inspect it: git -C \"$REPO\" status --short"
+  die_state "working tree has uncommitted changes to TRACKED files" \
+    "  ↳ inspect them: git -C \"$REPO\" status --short --untracked-files=no"
 fi
-[ "$stash_count" -eq 0 ] || die_state "repository has $stash_count stash entry(s)" "  ↳ inspect them: git -C \"$REPO\" stash list"
+# Untracked files are reported once and never block — see the note above.
+if [ "$untracked" -ne 0 ]; then
+  echo "⚠ $untracked untracked file(s) present (ignored by every gate, never committed for you):" >&2
+  echo "  ↳ list them: git -C \"$REPO\" ls-files --others --exclude-standard" >&2
+fi
+# A stash is only dangerous where the delta folds into living specs: assert-archivable.
+# Elsewhere it is normal interrupted work — warn, never block, and never touch it.
+if [ "$stash_count" -ne 0 ]; then
+  if [ "$MODE" = assert-archivable ]; then
+    die_state "repository has $stash_count stash entry(s)" "  ↳ inspect them: git -C \"$REPO\" stash list"
+  fi
+  echo "⚠ $stash_count stash entry(s) present (left untouched): git -C \"$REPO\" stash list" >&2
+fi
+
+if [ "$MODE" = assert-archivable ]; then
+  git -C "$REPO" fetch --quiet origin || die_state "fetch from origin failed" "  ↳ check access: git -C \"$REPO\" fetch origin"
+  if ! git -C "$REPO" show-ref --verify --quiet "refs/remotes/origin/$BASE"; then
+    die_state "origin/$BASE does not exist" "  ↳ inspect branches: git -C \"$REPO\" branch -r"
+  fi
+  if ! git -C "$REPO" merge-base --is-ancestor "origin/$BASE" HEAD; then
+    die_state "$branch does not contain origin/$BASE" \
+      "  ↳ archiving here would fold the delta into stale specs" \
+      "  ↳ inspect it: git -C \"$REPO\" log --oneline --left-right HEAD...origin/$BASE" \
+      "  ↳ merge the base in, or archive on a branch created from it"
+  fi
+  echo "✓ $branch contains origin/$BASE (archivable, ahead $ahead, behind $behind)"
+  exit 0
+fi
 
 if [ "$MODE" = prepare-base ]; then
+  # Commits on OTHER branches are not this command's business: checking out the base
+  # neither moves nor deletes them. Report them so they are never a surprise, then let
+  # the base-scoped gate below refuse the one case that can lose work — unpushed
+  # commits on the base branch itself.
   unpublished=$(git -C "$REPO" log --branches --not --remotes --oneline 2>/dev/null || true)
   if [ -n "$unpublished" ]; then
-    die_state "repository has unpushed commit(s)" "  ↳ inspect them: git -C \"$REPO\" log --branches --not --remotes --oneline"
+    echo "⚠ commit(s) exist on no remote (preserved, nothing is deleted):" >&2
+    printf '%s\n' "$unpublished" >&2
+    echo "  ↳ inspect them: git -C \"$REPO\" log --branches --not --remotes --oneline" >&2
   fi
 
   git -C "$REPO" fetch --quiet origin || die_state "fetch from origin failed" "  ↳ check access: git -C \"$REPO\" fetch origin"
@@ -187,8 +234,40 @@ if [[ ! "$TICKET" =~ ^[A-Z][A-Z0-9]+-[0-9]+$ ]]; then
   exit 2
 fi
 expected_change="feature/$TICKET"
+
+# --checkout switches to an EXISTING story branch. It never creates one: a missing branch means the
+# story was never started here, and only corp-spec may decide where a new branch is cut from.
+if [ "$CHECKOUT" -eq 1 ] && [ "$branch" != "$expected_change" ]; then
+  # A dirty tree already died at the generic gate above unless --allow-dirty was given. With it, the
+  # edits travel to the story branch and git itself refuses when that would overwrite a file.
+  if git -C "$REPO" show-ref --verify --quiet "refs/heads/$expected_change"; then
+    git -C "$REPO" checkout --quiet "$expected_change" \
+      || die_state "cannot check out $expected_change without overwriting local edits" \
+        "  ↳ inspect it: git -C \"$REPO\" status --short" \
+        "  ↳ commit or park those edits first — this tool never discards work"
+    echo "✓ switched to $expected_change"
+  else
+    git -C "$REPO" fetch --quiet origin || die_state "fetch from origin failed" "  ↳ check access: git -C \"$REPO\" fetch origin"
+    if git -C "$REPO" show-ref --verify --quiet "refs/remotes/origin/$expected_change"; then
+      git -C "$REPO" checkout --quiet -b "$expected_change" --track "origin/$expected_change" \
+        || die_state "cannot track origin/$expected_change" "  ↳ inspect branches: git -C \"$REPO\" branch -avv"
+      echo "✓ checked out $expected_change tracking origin/$expected_change"
+    else
+      die_state "$expected_change does not exist locally or on origin" \
+        "  ↳ this story was never started in this repository" \
+        "  ↳ run corp-spec to create it; this tool never cuts a new branch"
+    fi
+  fi
+  branch=$(git -C "$REPO" symbolic-ref --quiet --short HEAD 2>/dev/null || true)
+  upstream=$(git -C "$REPO" rev-parse --abbrev-ref --symbolic-full-name '@{u}' 2>/dev/null || true)
+  dirty=0
+  [ -n "$(git -C "$REPO" status --porcelain --untracked-files=no)" ] && dirty=1
+fi
+
 [ "$branch" = "$expected_change" ] \
-  || die_state "expected branch $expected_change, found ${branch:-DETACHED}" "  ↳ rename it only after review: git -C \"$REPO\" branch -m $expected_change"
+  || die_state "expected branch $expected_change, found ${branch:-DETACHED}" \
+    "  ↳ switch to it: bash repository-state.sh assert-change $TICKET --checkout" \
+    "  ↳ or rename this branch only after review: git -C \"$REPO\" branch -m $expected_change"
 [ -n "$upstream" ] \
   || die_state "$expected_change has no upstream" "  ↳ publish it: git -C \"$REPO\" push -u origin $expected_change"
 [ "$upstream" = "origin/$expected_change" ] \

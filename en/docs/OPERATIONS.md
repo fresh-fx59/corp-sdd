@@ -19,16 +19,45 @@ an unknown dirty tree, or hides local commits. It resolves the base from
 `CORP_BASE_BRANCH`, local `corp.baseBranch`, the parent store's `.gitmodules`,
 remote `develop`, then the remote default.
 
+## Which edition am I running?
+
+The kit is versioned. `VERSION` holds the edition, every shipped command, skill and
+tool carries a matching `corp-version:` stamp, and `MANIFEST.sha256` pins their exact
+bytes. To tell a kit file apart from a locally changed copy:
+
+```bash
+KV="$CORP_SDD_ROOT/scripts/tools/kit-version.sh"
+bash "$KV" show                       # the edition this kit is
+bash "$KV" list                       # every stamped file and its stamp
+bash "$KV" verify                     # nothing changed since that edition
+bash "$KV" identify <installed-file>  # pristine / MODIFIED / UNSTAMPED
+```
+
+Run it from the unpacked kit: it reads `VERSION` and `MANIFEST.sha256` beside itself,
+so it is not one of the tools installed into a repository (`--root <kit>` points it at
+another unpacked kit). `identify` hashes the file you name, so it works on an installed
+copy at any path — an agent-home command directory included. `UNSTAMPED` means the copy
+predates versioning or is your own; `MODIFIED` means it carries a stamp but not those bytes.
+
 ## Workflow
 
-1. `corp-spec`: inspect live repositories, prepare bases, create story branches,
-   and explicitly run the installed OpenSpec new and continue commands until
-   proposal and delta spec exist.
+1. `corp-spec`: inspect live repositories, then place yourself before creating anything —
+   no tracker key means no branch (ask once; never invent one), and an existing
+   `feature/<TICKET>`, checked out or not, is resumed rather than recreated. Only a branch
+   that exists nowhere goes through `prepare-base`. Then create the change and ask the
+   OpenSpec CLI for `proposal` and `specs`, one artifact at a time.
 2. `corp-plan`: assert the story branch and create current design and tasks.
 3. `corp-implement`: assert the branch, enter OpenSpec apply, then use Corp TDD.
 4. `corp-review`: inspect state and run OpenSpec verify before human review.
 5. `corp-test-plan` and `corp-autotest`: derive checks from approved scenarios.
-6. After merge, `corp-archive`: prepare the configured base and run OpenSpec archive.
+   `corp-test-plan` is **black-box**: the request or Kafka event to send, the expected
+   response, and the expected database rows on the dev stand — posted as a comment on the
+   same ticket, never as a separate test task. `corp-autotest` is the in-code layer.
+6. After merge, `corp-archive`: place the archive commit, then run OpenSpec archive.
+   Default places it on `feature/<TICKET>-archive` cut from the prepared base;
+   `--branch <name>` names that branch; `--here` archives on the current branch.
+   Every mode is gated by `assert-archivable`, which requires a clean tree and a
+   HEAD that already contains the configured base.
 
 The exact generated OpenSpec invocations live in `port-facts.md` and the installed
 commands. Re-probe them after every port or OpenSpec upgrade.
@@ -143,40 +172,19 @@ scale, plus one free-text answer. Use them verbatim so the periods stay comparab
 5. Would you recommend the flow to a colleague team?
 
 Free text: what one thing should we fix?
-## Installed versions
-
-Every command, skill, and script carries its own version marker, so an installed copy
-identifies itself with no external index: `version: X.Y.Z` in Markdown frontmatter and
-`corp-sdd-version: X.Y.Z` in scripts. `VERSIONS.md` in the kit lists all of them.
-
-Report what is installed here, and compare it against the kit:
-
-```bash
-bash "$CORP_SYSTEM_STORE_ROOT/tools/corp-versions.sh" \
-  --kit "$CORP_SDD_ROOT" \
-  "$CORP_SYSTEM_STORE_ROOT/tools" "<command-dir>" "<skill-dir>"
-```
-
-`current` means the installed version equals the kit's. `STALE` means the kit moved on —
-reinstall that asset. `UNVERSIONED` means a hand-edited copy with the marker stripped.
-The exit code is 1 when anything is `STALE`, `UNVERSIONED`, or `MISSING`.
-
-Versions rise automatically, and only on a real change. The kit's `pre-commit` hook bumps
-the patch level of every staged command, skill, or script whose body differs from `HEAD`
-(the version line itself is ignored in that comparison) and refreshes `VERSIONS.md`, so no
-one is ever asked for a version number, and a restage, amend, or rebase bumps nothing.
-Enable the hook once per clone:
-
-```bash
-git -C "$CORP_SDD_ROOT" config core.hooksPath .githooks
-```
-
-Set `CORP_SDD_BUMP_LEVEL=minor` or `major` on a commit that changes an asset's contract.
 
 ## Upgrade
 
-Pull `corp-sdd`, review its changes, then repeat setup stages 1, 2, and 5–9.
-Do not overwrite the system store from `system-store-template/`. Copy current
-tools, commands, and skills into their discovered destinations, resolve OpenSpec
-placeholders in installed command copies, run negative tests, and commit each Git
-repository independently.
+An existing workspace is upgraded by [`docs/UPGRADE.md`](UPGRADE.md), not by
+repeating the install. Read it before pulling the new kit.
+
+The short version: inventory every installed file with `kit-version.sh identify`
+first, gate each repository with `repository-state.sh prepare-base`, refresh the
+store's `tools/` **and** every spoke's `tools/`, reinstall commands and skills and
+re-resolve every `<openspec>` token from `port-facts.md`, stop on any
+`MODIFIED` copy instead of overwriting it, re-run the negative tests, and commit
+each Git repository separately.
+
+Never overwrite the system store from `system-store-template/`, never re-run
+`git init` there, and never let an upgrade touch `project-repositories.json`,
+`.gitmodules`, or any `openspec/` tree.

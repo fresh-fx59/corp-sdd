@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# corp-sdd-version: 1.0.0
+# corp-version: 2026-08-25.15
 # Reconcile a normalized project repository inventory into system-store/submodules/.
 # Adds and validates only. Removed bindings are reported and never deleted automatically.
 set -uo pipefail

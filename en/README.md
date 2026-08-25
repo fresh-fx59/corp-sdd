@@ -4,11 +4,15 @@ This kit installs a project-level SDD system store and repository-level OpenSpec
 workflow. It is self-contained for restricted networks after your organization
 mirrors the required binaries and npm package.
 
-Start with [`docs/SETUP.md`](docs/SETUP.md). It is the only installation and
-upgrade runbook. Daily use and recovery are in
+Start with [`docs/SETUP.md`](docs/SETUP.md): it is the installation runbook for a
+new workspace. An existing workspace moves to a newer kit edition through
+[`docs/UPGRADE.md`](docs/UPGRADE.md), and an installation still on the 2026-08-05
+layout (`clones/` + `repos.json`) migrates with
+[`docs/MIGRATION-71de101-to-current.md`](docs/MIGRATION-71de101-to-current.md).
+Daily use and recovery are in
 [`docs/OPERATIONS.md`](docs/OPERATIONS.md).
 
-The workflow itself is described twice, and neither file installs anything:
+The workflow itself is described three times, and none of these files installs anything:
 [`docs/FLOW.md`](docs/FLOW.md) is the seven-stage table, one row per `corp-*` command;
 [`docs/FLOW-TABLE.md`](docs/FLOW-TABLE.md) is the wide table with the OpenSpec call, the
 Superpowers discipline, the scripts that actually run, the exit gate and the value per step;

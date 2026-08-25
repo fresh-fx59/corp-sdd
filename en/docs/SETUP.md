@@ -79,21 +79,56 @@ Probe the real port and write evidence to a copy of `templates/port-facts.md`:
 1. configuration directory and project instruction filename;
 2. command directory, file format, invocation syntax, and argument token;
 3. skill directory and whether project-scoped skills load automatically;
-4. generated OpenSpec command names for new, continue, apply, verify, and archive;
+4. the exact OpenSpec CLI invocation, proven by running it — the workflow uses CLI
+   subcommands (`new change`, `status`, `instructions`, `validate`, `archive`), not the
+   agent slash commands, which vary by version and profile;
 5. MCP tool names for project repository bindings, tracker, wiki, and code search;
 6. hook support, context limits, and agent version.
 
-Do not assume `.qwen/`, slash commands, or any MCP tool name. Initialize OpenSpec
-once in temporary data with the pinned internal package, then inspect the generated
-files. Record exact invocations as:
+Do not assume any agent-home directory name, slash command, or MCP tool name — this kit
+names none of them, on purpose: the same kit installs onto ports whose homes and instruction
+files are called different things. Initialize OpenSpec once in temporary data with the pinned
+internal package, then inspect the generated files.
+
+Two of those facts are read back by the tooling, so record them where the machine can find
+them, not only in prose:
+
+```bash
+git -C "$REPO" config corp.agentDir "<the agent home you found, e.g. .acme>"
+```
+
+`corp-lint.mjs` resolves the agent home in this order: `CORP_AGENT_DIR`, then
+`git config corp.agentDir`, then the single dot-directory at the repository root that contains
+a `skills/` subdirectory. It exits 1 rather than guess when it finds more than one. The port's
+project instruction file — the `AGENTS.md` analogue, whatever this port calls it — needs no
+configuration: the lint picks up every ALL-CAPS `.md` at the repository root except the usual
+project files (README, LICENSE, CHANGELOG, CONTRIBUTING, SECURITY, CODE_OF_CONDUCT, NOTICE).
+Record both names in `port-facts.md` (P1) so a human reading the note knows what they are.
+
+The installed commands call the OpenSpec **CLI**, never a generated slash command.
+Slash commands differ between versions and profiles — OpenSpec 1.10's core profile
+ships `propose, explore, apply, update, sync, archive` and has no `new`, `continue` or
+`verify` at all — while these six CLI calls are stable and machine-readable. Record ONE
+token, the exact invocation of the pinned package:
 
 ```text
-<opsx-new-command>
-<opsx-continue-command>
-<opsx-apply-command>
-<opsx-verify-command>
-<opsx-archive-command>
+<openspec>
 ```
+
+Resolve it to whatever runs on this machine, for example `npx @fission-ai/openspec@<pinned-version>`
+or an internal wrapper on PATH, and prove all six calls the workflow uses:
+
+```bash
+<openspec> new change corp-probe
+<openspec> status --change corp-probe --json
+<openspec> instructions proposal --change corp-probe --json
+<openspec> instructions apply --change corp-probe --json
+<openspec> validate corp-probe --type change --strict --json
+<openspec> archive --help
+```
+
+Delete the probe change afterwards. Record the resolved token and the six proven calls
+in `port-facts.md`.
 
 Upstream Superpowers is not required. Use the self-contained `skills/corp-*`
 files. If the port has no skill mechanism, inline each referenced skill body into
@@ -144,8 +179,10 @@ bash "$CORP_SDD_ROOT/scripts/tools/repository-state.sh" prepare-base --repo "$CO
 git -C "$CORP_SYSTEM_STORE_ROOT" config corp.baseBranch "<system-store-base-branch>"
 ```
 
-The state gate refuses dirty worktrees, stashes, detached HEAD, unpublished commits,
-wrong upstreams, and divergence. It only performs a verified fast-forward.
+The state gate refuses dirty worktrees, detached HEAD, unpushed commits on the base
+branch, wrong upstreams, and divergence. It only performs a verified fast-forward.
+A stash and commits on other local branches are reported, never blocked and never
+touched — only `assert-archivable` treats a stash as a hard stop.
 
 Place the normalized stage-1 result at
 `$CORP_SYSTEM_STORE_ROOT/project-repositories.json`. Copy current store tools and
@@ -162,7 +199,6 @@ install -m 0644 "$CORP_SDD_ROOT/scripts/tools/gen-index.mjs" "$CORP_SYSTEM_STORE
 install -m 0644 "$CORP_SDD_ROOT/scripts/tools/corp-lint.mjs" "$CORP_SYSTEM_STORE_ROOT/tools/"
 install -m 0644 "$CORP_SDD_ROOT/scripts/tools/check-contract-split-brain.mjs" "$CORP_SYSTEM_STORE_ROOT/tools/"
 install -m 0755 "$CORP_SDD_ROOT/scripts/tools/check-openspec-root.sh" "$CORP_SYSTEM_STORE_ROOT/tools/"
-install -m 0755 "$CORP_SDD_ROOT/scripts/tools/corp-versions.sh" "$CORP_SYSTEM_STORE_ROOT/tools/"
 install -m 0644 "$CORP_SDD_ROOT/templates/port-facts.md" "$CORP_SYSTEM_STORE_ROOT/port-facts.md"
 install -m 0644 "$CORP_SDD_ROOT/templates/conventions-branching.md" "$CORP_SYSTEM_STORE_ROOT/conventions/branching.md"
 ```
@@ -206,6 +242,11 @@ For each path reported by `.gitmodules`:
    the approved internal channel, then run `lefthook install`;
 6. add a stable repository id at `openspec/repo.txt`, generate its index, and run
    the root-derived `verify-docs.sh`;
+6a. copy `templates/testing-stack.md` to that repository's `docs/testing-stack.md` and
+   fill it in with the team: the fast and slow tiers, the command that runs each, the
+   wiring boundaries only the slow tier catches, and the debugging boundary order.
+   `corp-tdd` and `corp-debugging` name no framework of their own — they read this file,
+   so an empty one leaves both skills without a stack;
 7. declare the store in that repository's `openspec/config.yaml` so a spoke can
    link the shared contract instead of restating it:
 
@@ -250,13 +291,14 @@ Copy `skills/corp-*` into the project-scoped skill directory discovered in stage
 Copy `commands/corp-*.md` into the discovered command directory. Adapt only the
 port wrapper, frontmatter, and `{{args}}` token where required.
 
-Replace every named OpenSpec placeholder in the installed copies with the exact
-generated invocation from `port-facts.md`. The command bodies must explicitly call
-new and continue during `corp-spec`, apply during `corp-implement`, verify during
-`corp-review`, and archive during `corp-archive`.
+Replace every `<openspec>` token in the installed copies with the resolved invocation from
+`port-facts.md`. The command bodies must call `new change` and per-artifact `instructions`
+during `corp-spec`, `instructions design`/`instructions tasks` during `corp-plan`,
+`instructions apply` during `corp-implement`, `validate` and `status` during `corp-review`,
+and `archive` during `corp-archive`.
 
 ```bash
-rg -n '<opsx-(new|continue|apply|verify|archive)-command>' "<installed-command-dir>" && exit 1 || true
+rg -n '<openspec>' "<installed-command-dir>" && exit 1 || true
 ```
 
 If skills are unsupported, inline their bodies now and prove no unavailable skill
@@ -265,22 +307,23 @@ Superpowers.
 
 ## 7. Wire the CI backstop
 
-Adapt this to the self-hosted CI in use and smoke-test it before relying on it.
-Every spoke repository runs the same disposer the agent and the hook run:
+TEMPLATE — adapt to the internal CI and smoke-test it before relying on it. Every
+spoke repository runs the same disposer the agent and the hook run:
 
-```bash
-bash "$(git rev-parse --show-toplevel)/tools/verify-docs.sh"
+```groovy
+stage('docs-disposer') { steps { sh 'bash "$(git rev-parse --show-toplevel)/tools/verify-docs.sh"' } }
 ```
 
 The system store runs the catalog job nightly and on spoke merges:
 
-```bash
-STORE_ROOT="$(git rev-parse --show-toplevel)"
-bash "$STORE_ROOT/tools/sync-submodules.sh" \
-  --inventory "$STORE_ROOT/project-repositories.json" --store-root "$STORE_ROOT"
-node "$STORE_ROOT/tools/aggregate-index.mjs" --strict   # a red repo fails the build, loudly
-git add catalog.json catalog.md
-git diff --cached --quiet || git commit -m "chore(<TICKET>): refresh catalog" && git push
+```groovy
+stage('catalog') {
+  steps {
+    sh 'bash "$(git rev-parse --show-toplevel)/tools/sync-submodules.sh" --inventory project-repositories.json --store-root "$(git rev-parse --show-toplevel)"'
+    sh 'node "$(git rev-parse --show-toplevel)/tools/aggregate-index.mjs" --strict'   // a red repo fails the build, loudly
+    sh 'git add catalog.json catalog.md && git diff --cached --quiet || git commit -m "chore(<TICKET>): refresh catalog" && git push'
+  }
+}
 ```
 
 Keep contract-test, schema-compatibility, and migration-lint jobs in separate
@@ -329,7 +372,7 @@ Close the install only when every line holds:
 - [ ] store live: sync + `aggregate-index --strict` green in the nightly CI job;
 - [ ] each onboarded repository: disposer green in pre-commit and in CI, index and
       `repo.txt` committed;
-- [ ] commands and skills installed, no `<opsx-*-command>` placeholder left;
+- [ ] commands and skills installed, no `<openspec>` token left;
 - [ ] one Corp command executed end-to-end in the port;
 - [ ] named champion per team and a named harness owner who owns the pins, the
       catalog job, and the port re-probes;

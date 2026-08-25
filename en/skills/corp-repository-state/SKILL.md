@@ -1,7 +1,7 @@
 ---
 name: corp-repository-state
 description: Use when starting or resuming Corp SDD work, changing base or feature branches, working in a project submodule, or encountering dirty, detached, stale, unpushed, behind, or diverged Git state.
-version: 1.0.0
+corp-version: 2026-08-25.15
 ---
 
 # Corp repository state
@@ -37,6 +37,10 @@ Run:
 bash "$(git rev-parse --show-toplevel)/tools/repository-state.sh" assert-change <TICKET>
 ```
 
+Add `--checkout` when the command should move you onto the story branch instead of stopping. It
+switches only to a branch that already exists locally or on origin, and refuses to invent one —
+cutting a new story branch is `corp-spec`'s decision alone.
+
 Use `--allow-dirty` only for a command that explicitly resumes already-started
 implementation or test edits. A dirty spec, plan, review, or archive start is a
 state failure, not permission to continue.
@@ -48,7 +52,9 @@ state failure, not permission to continue.
 | Learn current state | `inspect` | Evidence only; no mutation |
 | Start a new story | `prepare-base` | Configured base, clean, tracked, current |
 | Plan or review | `assert-change <TICKET>` | Exact tracked feature branch, not behind |
+| Get onto the story branch | `assert-change <TICKET> --checkout` | Switches to an EXISTING branch (local or origin); never creates one |
 | Resume code edits | `assert-change <TICKET> --allow-dirty` | Same branch gate; working edits allowed |
+| Archive after merge | `assert-archivable` | Clean tree, no stashes, HEAD contains the base |
 
 The base branch comes from `CORP_BASE_BRANCH`, then the repository-local
 `corp.baseBranch` Git setting, then the parent system store's `.gitmodules`.

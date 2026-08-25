@@ -54,7 +54,8 @@ if [ "$rc" -eq 0 ] \
   && grep -q '^expected_base=develop$' <<<"$out" \
   && grep -q '^branch=develop$' <<<"$out" \
   && grep -q '^ahead=0$' <<<"$out" \
-  && grep -q '^behind=0$' <<<"$out"; then
+  && grep -q '^behind=0$' <<<"$out" \
+  && grep -q '^untracked=0$' <<<"$out"; then
   ok "reported the real submodule state"
 else
   no "inspect output was incomplete (rc=$rc)" "$out"
@@ -69,11 +70,11 @@ else
   no "prepare-base did not select develop (rc=$rc)" "$out"
 fi
 
-echo "T3 prepare-base refuses dirty work and leaves the branch unchanged"
+echo "T3 prepare-base refuses tracked dirty work and leaves the branch unchanged"
 G -C "$REPO" checkout --quiet feature/OLD-1
 printf 'dirty\n' >> "$REPO/state.txt"
 out=$(run_state prepare-base); rc=$?
-if [ "$rc" -eq 1 ] && grep -q "working tree is dirty" <<<"$out" \
+if [ "$rc" -eq 1 ] && grep -q "uncommitted changes to TRACKED files" <<<"$out" \
   && [ "$(G -C "$REPO" branch --show-current)" = feature/OLD-1 ]; then
   ok "preserved dirty work"
 else
@@ -91,17 +92,21 @@ else
 fi
 restore_repo
 
-echo "T5 prepare-base refuses commits that exist on no remote"
+echo "T5 prepare-base reports commits that exist on no remote and preserves them"
+# Checking out the base neither moves nor deletes a commit on ANOTHER branch, so it is a
+# warning, not a stop. The one case that could lose work — an unpushed commit on the base
+# itself — is still refused; T7 covers it.
 G -C "$REPO" checkout --quiet -b feature/LOCAL-1
 printf 'local\n' > "$REPO/local.txt"
 G -C "$REPO" add local.txt
 G -C "$REPO" commit --quiet -m local
 out=$(run_state prepare-base); rc=$?
-if [ "$rc" -eq 1 ] && grep -q "unpushed commit" <<<"$out" \
-  && [ -f "$REPO/local.txt" ]; then
-  ok "preserved the only copy of a local commit"
+if [ "$rc" -eq 0 ] && grep -q "commit(s) exist on no remote" <<<"$out" \
+  && [ "$(G -C "$REPO" branch --show-current)" = develop ] \
+  && G -C "$REPO" show feature/LOCAL-1:local.txt >/dev/null 2>&1; then
+  ok "warned about the local-only commit and left it intact"
 else
-  no "unpushed commit was not protected (rc=$rc)" "$out"
+  no "local-only commit was not reported or not preserved (rc=$rc)" "$out"
 fi
 G -C "$REPO" branch -D feature/LOCAL-1 >/dev/null 2>&1 || true
 restore_repo
@@ -158,7 +163,7 @@ echo "T10 assert-change permits dirty implementation state only when explicit"
 printf 'work\n' >> "$REPO/state.txt"
 blocked=$(run_state assert-change DEMO-123); blocked_rc=$?
 allowed=$(run_state assert-change DEMO-123 --allow-dirty); allowed_rc=$?
-if [ "$blocked_rc" -eq 1 ] && grep -q "working tree is dirty" <<<"$blocked" \
+if [ "$blocked_rc" -eq 1 ] && grep -q "uncommitted changes to TRACKED files" <<<"$blocked" \
   && [ "$allowed_rc" -eq 0 ]; then
   ok "required explicit dirty-state permission"
 else
@@ -173,6 +178,22 @@ if [ "$rc" -eq 0 ] && grep -q '^expected_base=master$' <<<"$out"; then
 else
   no "ignored corp.baseBranch (rc=$rc)" "$out"
 fi
+
+echo "T12 untracked files never block a gate, and inspect counts them"
+restore_repo
+G -C "$REPO" checkout --quiet feature/DEMO-123
+printf 'scratch\n' > "$REPO/scratch.local"
+seen=$(run_state inspect); seen_rc=$?
+gated=$(run_state assert-change DEMO-123); gated_rc=$?
+if [ "$seen_rc" -eq 0 ] && grep -q '^untracked=1$' <<<"$seen" \
+  && [ "$gated_rc" -eq 0 ] && grep -q "untracked file(s) present" <<<"$gated" \
+  && [ -f "$REPO/scratch.local" ]; then
+  ok "counted the untracked file, warned, and let the gate pass"
+else
+  no "untracked handling was incorrect (inspect rc=$seen_rc, gate rc=$gated_rc)" "$seen\n$gated"
+fi
+rm -f "$REPO/scratch.local"
+restore_repo
 
 echo
 echo "PASS=$PASS FAIL=$FAIL"

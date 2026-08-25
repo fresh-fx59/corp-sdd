@@ -1,8 +1,8 @@
 # Corp SDD flow
 
 This is the short English workflow reference. Installation is documented only in
-[`SETUP.md`](SETUP.md); daily use is documented only in
-[`OPERATIONS.md`](OPERATIONS.md).
+[`SETUP.md`](SETUP.md); upgrading an existing workspace only in [`UPGRADE.md`](UPGRADE.md);
+daily use only in [`OPERATIONS.md`](OPERATIONS.md).
 
 The same seven stages twice more: [`FLOW-TABLE.md`](FLOW-TABLE.md) is the wide table — per step,
 what Corp SDD performs, the OpenSpec call, the Superpowers discipline, the scripts that actually
@@ -19,29 +19,41 @@ submodules under `system-store/submodules/`; no clone directory is maintained.
 3. Validate the inventory and write `system-store/project-repositories.json`.
 4. Run `sync-submodules.sh`; it registers, initializes, and updates only declared submodules.
 5. Install the kit's commands, tools, and six self-contained `corp-*` skills.
-6. Resolve the local OpenSpec command names into the command placeholders.
-7. Run the acceptance checks before using the workflow.
+6. In every onboarded repository, install `templates/testing-stack.md` as `docs/testing-stack.md`
+   and fill it in with the team. `corp-tdd` and `corp-debugging` name no framework of their own —
+   they read that file, so an empty one leaves both skills without a stack.
+7. Replace the single `<openspec>` token in every installed command and skill with the CLI
+   invocation `port-facts.md` records for this port.
+8. Run the acceptance checks before using the workflow.
 
 MCP improves discovery but is not an installation dependency. Upstream Superpowers is also
 optional because the required engineering disciplines are included in the kit.
 
 ## Delivery lifecycle
 
+`<openspec>` below is that resolved CLI invocation, and `<change-id>` the OpenSpec change folder.
+
 | Step | Corp command | Required OpenSpec action | Repository-state gate |
 |---|---|---|---|
-| Specify | `corp-spec` | Run resolved `opsx new`, then `opsx continue` until `proposal.md` and `spec.md` exist. | Inspect first; prepare the configured base branch before creating a change branch. |
-| Plan | `corp-plan` | Run resolved `opsx continue` until `design.md` and `tasks.md` exist. | Require the exact tracked change branch and a clean state. |
-| Implement | `corp-implement` | Enter resolved `opsx apply`, then execute each task with Corp TDD. | Require the exact change branch; dirty work is allowed explicitly. |
-| Plan tests | `corp-test-plan` | Read the OpenSpec change and create scenario coverage. | Inspect and validate a local change branch when present. |
-| Run tests | `corp-autotest` | Update OpenSpec evidence after the test tiers finish. | Require the exact change branch; dirty work is allowed explicitly. |
-| Review | `corp-review` | Run resolved `opsx verify` before the deeper code review. | Inspect and validate a local change branch when present. |
-| Archive | `corp-archive` | Run resolved `opsx archive` after the pull request is merged. | Prepare and verify the configured base branch first. |
+| Specify | `corp-spec` | `<openspec> new change <change-id>`, then `instructions proposal` and `instructions specs` one artifact at a time, then `validate <change-id> --type change --strict --json` until `"valid": true`. | Inspect first; place yourself on an existing `feature/<TICKET>`, or prepare the configured base and cut it. |
+| Plan | `corp-plan` | `<openspec> instructions design` and `instructions tasks`, one at a time; nothing else. | `assert-change <TICKET> --checkout` — moves onto an existing story branch, never creates one. |
+| Implement | `corp-implement` | `<openspec> instructions apply --change <change-id> --json` for task state only; `validate --strict --json` again on any spec amendment. | `assert-change <TICKET> --checkout --allow-dirty`. |
+| Plan tests | `corp-test-plan` | No OpenSpec command. Reads the delta scenarios and the change's `research.md` OBSERVABLE CONTRACT block. | Inspect, plus `assert-change <TICKET> --allow-dirty` on a local change branch. |
+| Generate autotests | `corp-autotest` | No OpenSpec command. Reads the approved delta scenarios. | `assert-change <TICKET> --checkout --allow-dirty`. |
+| Review | `corp-review` | `<openspec> validate <change-id> --type change --strict --json` and `status --change <change-id> --json` before the deeper code review. | Inspect, plus `assert-change <TICKET> --allow-dirty` on a local story branch. |
+| Archive | `corp-archive` | `validate --strict --json`, then `<openspec> archive <change-id> --yes --json` after the pull request is merged. | `prepare-base` (unless `--here`), then `assert-archivable`. |
+
+`corp-spec`, `corp-plan`, `corp-implement`, `corp-autotest`, and `corp-archive` each finish their
+own Git work: they stage the files they wrote **by path** — never `git add -A` — commit under the
+type `check-git-naming.sh` expects, and push. `corp-implement` commits ONCE, when every task box is
+ticked, never per task.
 
 Every command derives `REPO_ROOT`, `STORE_ROOT`, and tool paths at runtime. It never depends on a
 developer-specific absolute path or on the caller's current directory.
 
 ## Proof
 
-Run the six scripts in `tests/` against both language kits. They cover submodule synchronization,
-branch safety, aggregation, indexing, path derivation, documentation scope, MCP fallback, explicit
-OpenSpec actions, and the absence of clone-era paths.
+Run the seven scripts in `tests/` against both language kits. They cover submodule
+synchronization, branch safety, aggregation, indexing, path derivation, documentation scope, MCP
+fallback, the explicit `<openspec>` calls, the kit-edition stamps and manifest, and the absence of
+clone-era paths.

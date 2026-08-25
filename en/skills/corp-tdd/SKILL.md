@@ -1,26 +1,26 @@
 ---
 name: corp-tdd
-description: Tiered test-driven development for this stack (Java/Spring, Flink, Next.js). Use for ALL implementation work.
-version: 1.0.0
+description: Tiered test-driven development against the repository's own testing stack. Use for ALL implementation work.
+corp-version: 2026-08-25.15
 ---
 ## Iron law
 No production code without a failing test first. No exceptions for "trivial" changes — trivial
 changes with tests stay trivial; trivial changes without tests become incidents.
 
-## The two tiers (this is the stack-specific part)
-FAST tier — the inner loop, run after EVERY green step, must stay in seconds:
-- Java: plain JUnit unit tests. No Spring context. Mock at module boundaries only.
-- Flink: OneInputStreamOperatorTestHarness / KeyedOneInputStreamOperatorTestHarness for operators
-  and UDFs — in-JVM, no cluster.
-- Next.js: component tests (testing-library style), pure-function tests.
-SLOW tier — run at TASK boundaries and before PR, never inside the micro-loop:
-- Java: Testcontainers / @SpringBootTest context tests. Respect context caching: shared abstract
-  base class, static containers, no per-class @DirtiesContext/@MockBean scattering — a cache-busted
-  suite turns 2 minutes into 15 and kills this whole discipline.
-- Flink: MiniClusterWithClientResource pipeline tests.
-- Next.js: E2E/visual pass (run the app; screenshots are evidence).
-DI/wiring bugs surface ONLY in the slow tier — a task touching Spring wiring is not done on fast
-tier green alone.
+## The two tiers
+FAST tier — the inner loop, run after EVERY green step, must stay in seconds.
+SLOW tier — run at TASK boundaries and before the PR, never inside the micro-loop.
+
+Which test is which, and the command that runs each tier, are facts about THIS repository, not
+about this skill. Read `docs/testing-stack.md` in the repository and follow it. If that file does
+not exist, stop and ask the team once, then write it from `templates/testing-stack.md` — never
+guess a framework or invent a harness class.
+
+Two rules hold in every stack:
+- A slow-tier suite whose shared context is busted per class turns 2 minutes into 15 and kills
+  this discipline. Share the setup; do not scatter per-class overrides.
+- Wiring, serialization and configuration bugs surface ONLY in the slow tier. A task touching one
+  of those boundaries is not done on fast-tier green alone.
 
 ## The cycle (per task in tasks.md)
 1. RED: write the test from the task's scenario. Run it. SEE it fail with the expected failure —

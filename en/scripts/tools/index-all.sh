@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# corp-sdd-version: 1.0.0
+# corp-version: 2026-08-25.15
 # Rebuild the optional Zoekt index for every registered Git submodule.
 set -euo pipefail
 

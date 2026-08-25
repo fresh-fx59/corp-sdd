@@ -78,21 +78,57 @@ test "$CORP_SYSTEM_STORE_ROOT" != "$CORP_SDD_ROOT"
 1. каталог конфигурации и имя файла проектных инструкций;
 2. каталог и формат команд, синтаксис вызова и токен аргументов;
 3. каталог навыков и автоматическую загрузку проектных навыков;
-4. созданные OpenSpec-команды new, continue, apply, verify и archive;
+4. точный вызов OpenSpec CLI, доказанный запуском: процесс использует подкоманды CLI
+   (`new change`, `status`, `instructions`, `validate`, `archive`), а не slash-команды агента —
+   они меняются от версии и профиля;
 5. названия MCP-инструментов проекта, трекера, wiki и поиска кода;
 6. поддержку хуков, предел контекста и версию агента.
 
-Не предполагайте `.qwen/`, slash-команды и имена MCP. Один раз инициализируйте
-OpenSpec на временных данных закреплённым внутренним пакетом и изучите созданные
-файлы. Запишите точные вызовы:
+Не предполагайте имя домашнего каталога агента, slash-команды и имена MCP — этот набор
+их намеренно не называет: один и тот же набор ставится на порты, где каталог и файл
+инструкций называются по-разному. Один раз инициализируйте OpenSpec на временных данных
+закреплённым внутренним пакетом и изучите созданные файлы.
+
+Два из этих фактов читает сама тулинг-часть, поэтому запишите их машиночитаемо, а не только
+прозой:
+
+```bash
+git -C "$REPO" config corp.agentDir "<найденный каталог агента, напр. .acme>"
+```
+
+`corp-lint.mjs` определяет домашний каталог агента в таком порядке: `CORP_AGENT_DIR`, затем
+`git config corp.agentDir`, затем единственный dot-каталог в корне репозитория, внутри которого
+есть подкаталог `skills/`. Если их больше одного — он выходит с кодом 1, а не угадывает. Файл
+проектных инструкций порта — аналог `AGENTS.md`, как бы порт его ни называл — настраивать не
+нужно: линт берёт любой `.md` в корне, имя которого записано ЗАГЛАВНЫМИ, кроме обычных
+проектных файлов (README, LICENSE, CHANGELOG, CONTRIBUTING, SECURITY, CODE_OF_CONDUCT, NOTICE).
+Запишите оба имени в `port-facts.md` (P1), чтобы человек, читающий заметку, их знал.
+
+Установленные команды вызывают **CLI** OpenSpec, а не сгенерированные slash-команды.
+Slash-команды различаются от версии и профиля: в профиле core у OpenSpec 1.10 есть только
+`propose, explore, apply, update, sync, archive`, а `new`, `continue` и `verify` нет вовсе.
+Шесть вызовов CLI ниже стабильны и машиночитаемы. Запишите ОДИН токен — точный вызов
+закреплённого пакета:
 
 ```text
-<opsx-new-command>
-<opsx-continue-command>
-<opsx-apply-command>
-<opsx-verify-command>
-<opsx-archive-command>
+<openspec>
 ```
+
+Подставьте то, что реально работает на этой машине, например
+`npx @fission-ai/openspec@<pinned-version>` или внутреннюю обёртку в PATH, и докажите все
+шесть вызовов, которые использует процесс:
+
+```bash
+<openspec> new change corp-probe
+<openspec> status --change corp-probe --json
+<openspec> instructions proposal --change corp-probe --json
+<openspec> instructions apply --change corp-probe --json
+<openspec> validate corp-probe --type change --strict --json
+<openspec> archive --help
+```
+
+Затем удалите пробное изменение. Запишите подставленный токен и шесть доказанных вызовов
+в `port-facts.md`.
 
 Внешний Superpowers не требуется. Используйте самостоятельные файлы
 `skills/corp-*`. Если порт не поддерживает навыки, вставьте тело каждого нужного
@@ -143,8 +179,11 @@ bash "$CORP_SDD_ROOT/scripts/tools/repository-state.sh" prepare-base --repo "$CO
 git -C "$CORP_SYSTEM_STORE_ROOT" config corp.baseBranch "<system-store-base-branch>"
 ```
 
-Проверка состояния отклоняет грязное дерево, stash, detached HEAD, неотправленные
-коммиты, чужой upstream и расхождение. Она делает только проверенный fast-forward.
+Проверка состояния отклоняет грязное дерево, detached HEAD, неотправленные коммиты
+на самой базовой ветке, чужой upstream и расхождение. Она делает только проверенный
+fast-forward. Про stash и коммиты на других локальных ветках она сообщает, но не
+блокирует работу и ничего не трогает — жёсткой остановкой stash остаётся только для
+`assert-archivable`.
 
 Сохраните результат этапа 1 как
 `$CORP_SYSTEM_STORE_ROOT/project-repositories.json`. Скопируйте текущие инструменты
@@ -161,7 +200,6 @@ install -m 0644 "$CORP_SDD_ROOT/scripts/tools/gen-index.mjs" "$CORP_SYSTEM_STORE
 install -m 0644 "$CORP_SDD_ROOT/scripts/tools/corp-lint.mjs" "$CORP_SYSTEM_STORE_ROOT/tools/"
 install -m 0644 "$CORP_SDD_ROOT/scripts/tools/check-contract-split-brain.mjs" "$CORP_SYSTEM_STORE_ROOT/tools/"
 install -m 0755 "$CORP_SDD_ROOT/scripts/tools/check-openspec-root.sh" "$CORP_SYSTEM_STORE_ROOT/tools/"
-install -m 0755 "$CORP_SDD_ROOT/scripts/tools/corp-versions.sh" "$CORP_SYSTEM_STORE_ROOT/tools/"
 install -m 0644 "$CORP_SDD_ROOT/templates/port-facts.md" "$CORP_SYSTEM_STORE_ROOT/port-facts.md"
 install -m 0644 "$CORP_SDD_ROOT/templates/conventions-branching.md" "$CORP_SYSTEM_STORE_ROOT/conventions/branching.md"
 ```
@@ -205,6 +243,11 @@ git -C "$CORP_SYSTEM_STORE_ROOT" diff -- .gitmodules
    из разрешённого внутреннего источника и выполните `lefthook install`;
 6. создайте стабильный id в `openspec/repo.txt`, сгенерируйте индекс и запустите
    корневой `verify-docs.sh`;
+6a. скопируйте `templates/testing-stack.md` в `docs/testing-stack.md` этого репозитория и
+   заполните его вместе с командой: быстрый и медленный уровни, команда запуска каждого,
+   границы связывания, которые ловит только медленный уровень, и порядок границ при отладке.
+   `corp-tdd` и `corp-debugging` не называют собственных фреймворков — они читают этот файл,
+   поэтому пустой файл оставляет оба навыка без стека;
 7. объявите хранилище в `openspec/config.yaml` этого репозитория, чтобы спека
    ссылалась на общий контракт, а не повторяла его:
 
@@ -244,19 +287,19 @@ git -C "$CORP_SYSTEM_STORE_ROOT" diff -- .gitmodules
 Один скрипт держит границу для всех троих: агента после записи, человека на
 pre-commit через lefthook и CI как последнюю преграду.
 
-
 ## 6. Установите Corp-команды и навыки
 
 Скопируйте `skills/corp-*` в проектный каталог навыков из этапа 2. Скопируйте
 `commands/corp-*.md` в найденный каталог команд. Меняйте только оболочку порта,
 frontmatter и токен `{{args}}`, если это требуется.
 
-Замените все OpenSpec-плейсхолдеры в установленных копиях точными вызовами из
-`port-facts.md`. `corp-spec` явно вызывает new и continue, `corp-implement` — apply,
-`corp-review` — verify, `corp-archive` — archive.
+Замените каждый токен `<openspec>` в установленных копиях подставленным вызовом из
+`port-facts.md`. `corp-spec` вызывает `new change` и `instructions` по артефактам,
+`corp-plan` — `instructions design` и `instructions tasks`, `corp-implement` —
+`instructions apply`, `corp-review` — `validate` и `status`, `corp-archive` — `archive`.
 
 ```bash
-rg -n '<opsx-(new|continue|apply|verify|archive)-command>' "<installed-command-dir>" && exit 1 || true
+rg -n '<openspec>' "<installed-command-dir>" && exit 1 || true
 ```
 
 Если навыки не поддерживаются, вставьте их тела сейчас и докажите отсутствие
@@ -264,22 +307,23 @@ rg -n '<opsx-(new|continue|apply|verify|archive)-command>' "<installed-command-d
 
 ## 7. Подключите проверку в CI
 
-Адаптируйте под используемый self-hosted CI и проверьте дымовым прогоном, прежде
-чем на него полагаться. Каждый репозиторий гоняет ту же проверку, что агент и хук:
+ШАБЛОН — адаптируйте под внутренний CI и проверьте дымовым прогоном, прежде чем на
+него полагаться. Каждый репозиторий гоняет ту же проверку, что агент и хук:
 
-```bash
-bash "$(git rev-parse --show-toplevel)/tools/verify-docs.sh"
+```groovy
+stage('docs-disposer') { steps { sh 'bash "$(git rev-parse --show-toplevel)/tools/verify-docs.sh"' } }
 ```
 
 Системное хранилище гоняет сборку каталога ночью и на merge в репозиториях:
 
-```bash
-STORE_ROOT="$(git rev-parse --show-toplevel)"
-bash "$STORE_ROOT/tools/sync-submodules.sh" \
-  --inventory "$STORE_ROOT/project-repositories.json" --store-root "$STORE_ROOT"
-node "$STORE_ROOT/tools/aggregate-index.mjs" --strict   # красный репозиторий валит сборку, громко
-git add catalog.json catalog.md
-git diff --cached --quiet || git commit -m "chore(<TICKET>): refresh catalog" && git push
+```groovy
+stage('catalog') {
+  steps {
+    sh 'bash "$(git rev-parse --show-toplevel)/tools/sync-submodules.sh" --inventory project-repositories.json --store-root "$(git rev-parse --show-toplevel)"'
+    sh 'node "$(git rev-parse --show-toplevel)/tools/aggregate-index.mjs" --strict'   // красный репозиторий валит сборку, громко
+    sh 'git add catalog.json catalog.md && git diff --cached --quiet || git commit -m "chore(<TICKET>): refresh catalog" && git push'
+  }
+}
 ```
 
 Контрактные тесты, проверку совместимости схем и линт миграций держите в отдельных
@@ -326,7 +370,7 @@ git -C "$CORP_SYSTEM_STORE_ROOT" submodule status
 - [ ] хранилище живо: синхронизация и `aggregate-index --strict` зелёные в ночной задаче CI;
 - [ ] в каждом подключённом репозитории проверка зелёная в pre-commit и в CI, индекс
       и `repo.txt` закоммичены;
-- [ ] команды и навыки установлены, ни одного плейсхолдера `<opsx-*-command>` не осталось;
+- [ ] команды и навыки установлены, ни одного токена `<openspec>` не осталось;
 - [ ] одна Corp-команда отработала целиком в порту;
 - [ ] назван чемпион в каждой команде и назван владелец харнесса: за ним закрепления
       версий, задача каталога и повторные проверки порта;

@@ -1,12 +1,15 @@
 ---
 name: corp-code-review
 description: Giving and receiving review on agent-written diffs. Use for corp-review runs and when responding to review feedback.
-version: 1.0.0
+corp-version: 2026-08-25.15
 ---
+`<openspec>` is the OpenSpec CLI invocation setup resolved; `<change-id>` is the change under review.
+
 ## Giving review (the order matters)
-0. Coverage from the machine first: `<opsx-verify-command>` reports incomplete tasks, unimplemented
-   requirements (CRITICAL) and uncovered scenarios (WARNING). CRITICAL becomes a blocker. It
-   proves a test EXISTS, not that it ran — evidence of the run stays a separate requirement.
+0. Coverage from the machine first: `<openspec> validate <change-id> --type change --strict --json`
+   plus `<openspec> status --change <change-id> --json` report invalid artifacts (ERROR) and
+   incomplete tasks. An ERROR becomes a blocker. They prove the artifacts and tasks are complete,
+   not that a test ran — evidence of the run stays a separate requirement.
 1. Spec conformance first: the delta spec is the contract. Missing behavior = blocker. EXTRA
    behavior nobody asked for = finding too (scope creep hides bugs and unreviewed surface).
 2. Test honesty second: for each test ask "would this fail if the feature broke?" A diff whose
