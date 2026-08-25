@@ -1,6 +1,8 @@
 # Corp SDD flow — schema
 
-> A compact view of [FLOW.md](FLOW.md).
+> The one-screen view. The full workflow reference, with the per-command table, is
+> [`FLOW.md`](FLOW.md); installation is [`SETUP.md`](SETUP.md) and daily use is
+> [`OPERATIONS.md`](OPERATIONS.md).
 
 ```text
 Story / request

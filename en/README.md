@@ -8,6 +8,10 @@ Start with [`docs/SETUP.md`](docs/SETUP.md). It is the only installation and
 upgrade runbook. Daily use and recovery are in
 [`docs/OPERATIONS.md`](docs/OPERATIONS.md).
 
+The workflow itself is described twice, and neither file installs anything:
+[`docs/FLOW.md`](docs/FLOW.md) is the seven-stage table, one row per `corp-*` command;
+[`docs/FLOW-SCHEMA.md`](docs/FLOW-SCHEMA.md) is the same seven stages as a one-screen diagram.
+
 ## Resulting workspace
 
 ```text
