@@ -143,6 +143,33 @@ scale, plus one free-text answer. Use them verbatim so the periods stay comparab
 5. Would you recommend the flow to a colleague team?
 
 Free text: what one thing should we fix?
+## Installed versions
+
+Every command, skill, and script carries its own version marker, so an installed copy
+identifies itself with no external index: `version: X.Y.Z` in Markdown frontmatter and
+`corp-sdd-version: X.Y.Z` in scripts. `VERSIONS.md` in the kit lists all of them.
+
+Report what is installed here, and compare it against the kit:
+
+```bash
+bash "$CORP_SYSTEM_STORE_ROOT/tools/corp-versions.sh" \
+  --kit "$CORP_SDD_ROOT" \
+  "$CORP_SYSTEM_STORE_ROOT/tools" "<command-dir>" "<skill-dir>"
+```
+
+`current` means the installed version equals the kit's. `STALE` means the kit moved on —
+reinstall that asset. `UNVERSIONED` means a hand-edited copy with the marker stripped.
+The exit code is 1 when anything is `STALE`, `UNVERSIONED`, or `MISSING`.
+
+Versions rise automatically. The kit's `pre-commit` hook bumps the patch level of every
+staged command, skill, or script and refreshes `VERSIONS.md`, so no one is ever asked for
+a version number. Enable it once per clone:
+
+```bash
+git -C "$CORP_SDD_ROOT" config core.hooksPath .githooks
+```
+
+Set `CORP_SDD_BUMP_LEVEL=minor` or `major` on a commit that changes an asset's contract.
 
 ## Upgrade
 
