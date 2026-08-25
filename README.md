@@ -48,7 +48,9 @@ Every command, skill, and script states its own version: `version: X.Y.Z` in Mar
 frontmatter, `corp-sdd-version: X.Y.Z` in scripts. `VERSIONS.md` is the generated index.
 
 Bumps are automatic — the `pre-commit` hook raises the patch level of every staged asset
-and refreshes `VERSIONS.md`, so no one is asked for a version number. Enable it once:
+whose body actually changed, and refreshes `VERSIONS.md`, so no one is asked for a version
+number. Restaging an untouched file, amending, or rebasing never bumps anything: the check
+compares the file against `HEAD` with the version line removed. Enable the hook once:
 
 ```bash
 git config core.hooksPath .githooks

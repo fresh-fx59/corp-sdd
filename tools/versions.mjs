@@ -9,11 +9,13 @@
 // Modes:
 //   node tools/versions.mjs --stamp [files...]   add the marker where missing (init at 1.0.0)
 //   node tools/versions.mjs --bump  <files...>   bump the patch level of those assets
+//                                                (only those whose body really changed vs HEAD)
 //   node tools/versions.mjs --minor <files...>   bump the minor level (patch -> 0)
 //   node tools/versions.mjs --major <files...>   bump the major level (minor/patch -> 0)
 //   node tools/versions.mjs --manifest           rewrite VERSIONS.md from the markers
 //   node tools/versions.mjs --check              fail if any asset lacks a marker or VERSIONS.md is stale
 import { readFileSync, writeFileSync, readdirSync, existsSync, statSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
 import { join, resolve, relative, basename, sep } from 'node:path';
 
 const ROOT = resolve(new URL('..', import.meta.url).pathname);
@@ -96,6 +98,30 @@ function bump(path, level) {
   return setVersion(path, `${ma}.${mi}.${pa}`);
 }
 
+// ---- "really changed" test: the body, with the version marker line removed, must differ
+// from the committed one. A file whose only difference IS the marker never bumps again,
+// so re-commits, amends, and rebases cannot inflate versions.
+function stripMarker(text, path) {
+  return marker(path) === 'yaml'
+    ? text.replace(/^version:[ \t]*[0-9]+\.[0-9]+\.[0-9]+[ \t]*\r?\n/m, '')
+    : text.replace(/^(?:#|\/\/) corp-sdd-version:[ \t]*[0-9]+\.[0-9]+\.[0-9]+[ \t]*\r?\n/m, '');
+}
+
+function committedText(path) {
+  const rel = relative(ROOT, path).split(sep).join('/');
+  try {
+    return execFileSync('git', ['show', `HEAD:${rel}`], { cwd: ROOT, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
+  } catch {
+    return null; // new file, or no HEAD yet
+  }
+}
+
+export function bodyChanged(path) {
+  const old = committedText(path);
+  if (old === null) return true; // a brand-new asset is a change
+  return stripMarker(old, path) !== stripMarker(readFileSync(path, 'utf8'), path);
+}
+
 function manifestText() {
   const rows = assets().map(a => ({ ...a, version: readVersion(a.path) ?? '(unstamped)' }));
   const lines = [
@@ -146,10 +172,14 @@ if (mode === '--manifest') {
   writeFileSync(MANIFEST, manifestText());
 } else if (mode === '--bump' || mode === '--minor' || mode === '--major') {
   const level = mode === '--bump' ? 'patch' : mode.slice(2);
-  const targets = files.filter(isAsset);
+  const candidates = files.filter(isAsset);
+  const force = process.env.CORP_SDD_FORCE_BUMP === '1';
+  const targets = force ? candidates : candidates.filter(bodyChanged);
   for (const p of targets) console.log(`↑ ${relative(ROOT, p)} -> ${bump(p, level)}`);
+  const skipped = candidates.length - targets.length;
+  if (skipped) console.log(`= ${skipped} asset(s) unchanged — version kept`);
   writeFileSync(MANIFEST, manifestText());
-  if (!targets.length) console.log('no versioned assets in the given file list');
+  if (!candidates.length) console.log('no versioned assets in the given file list');
 } else {
   console.error('usage: versions.mjs [--check|--stamp|--bump|--minor|--major|--manifest] [files...]');
   process.exit(2);

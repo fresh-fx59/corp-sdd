@@ -161,9 +161,11 @@ bash "$CORP_SYSTEM_STORE_ROOT/tools/corp-versions.sh" \
 reinstall that asset. `UNVERSIONED` means a hand-edited copy with the marker stripped.
 The exit code is 1 when anything is `STALE`, `UNVERSIONED`, or `MISSING`.
 
-Versions rise automatically. The kit's `pre-commit` hook bumps the patch level of every
-staged command, skill, or script and refreshes `VERSIONS.md`, so no one is ever asked for
-a version number. Enable it once per clone:
+Versions rise automatically, and only on a real change. The kit's `pre-commit` hook bumps
+the patch level of every staged command, skill, or script whose body differs from `HEAD`
+(the version line itself is ignored in that comparison) and refreshes `VERSIONS.md`, so no
+one is ever asked for a version number, and a restage, amend, or rebase bumps nothing.
+Enable the hook once per clone:
 
 ```bash
 git -C "$CORP_SDD_ROOT" config core.hooksPath .githooks

@@ -36,5 +36,22 @@ printf 'T4 the installed-versions reporter flags drift\n'
 out="$(bash "$CLONE/en/scripts/tools/corp-versions.sh" --kit "$KIT_ROOT" "$CLONE/en/skills" 2>&1)"
 if printf '%s' "$out" | grep -q 'corp-tdd/SKILL.md.*STALE'; then pass "drifted skill reported STALE"; else fail "drift not detected: $(printf '%s' "$out" | head -3)"; fi
 
+printf 'T5 re-committing an unchanged asset does not bump it\n'
+v1="$(sed -n 's/^version:[[:space:]]*//p' en/skills/corp-tdd/SKILL.md | head -1)"
+touch en/skills/corp-tdd/SKILL.md
+git add -f en/skills/corp-tdd/SKILL.md
+git commit -qm 'chore: restage unchanged skill' >/dev/null 2>&1
+v2="$(sed -n 's/^version:[[:space:]]*//p' en/skills/corp-tdd/SKILL.md | head -1)"
+if [ "$v1" = "$v2" ]; then pass "unchanged asset kept $v2"; else fail "spurious bump $v1 -> $v2"; fi
+
+printf 'T6 amending a commit does not bump a second time\n'
+printf '\nsecond edit.\n' >> en/commands/corp-plan.md
+git add en/commands/corp-plan.md
+git commit -qm 'test: edit a command' >/dev/null 2>&1
+a1="$(sed -n 's/^version:[[:space:]]*//p' en/commands/corp-plan.md | head -1)"
+git commit -q --amend -m 'test: edit a command (amended)' >/dev/null 2>&1
+a2="$(sed -n 's/^version:[[:space:]]*//p' en/commands/corp-plan.md | head -1)"
+if [ "$a1" = "$a2" ]; then pass "amend kept $a2"; else fail "amend re-bumped $a1 -> $a2"; fi
+
 printf '\n%s passed, %s failed\n' "$PASS" "$FAIL"
 [ "$FAIL" -eq 0 ]
