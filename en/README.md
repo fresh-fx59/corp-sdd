@@ -6,9 +6,8 @@ mirrors the required binaries and npm package.
 
 Start with [`docs/SETUP.md`](docs/SETUP.md): it is the installation runbook for a
 new workspace. An existing workspace moves to a newer kit edition through
-[`docs/UPGRADE.md`](docs/UPGRADE.md), and an installation still on the 2026-08-05
-layout (`clones/` + `repos.json`) migrates with
-[`docs/MIGRATION-71de101-to-current.md`](docs/MIGRATION-71de101-to-current.md).
+[`docs/UPGRADE.md`](docs/UPGRADE.md); an installation still on the 2026-08-05 layout
+migrates with [`docs/MIGRATION-71de101-to-current.md`](docs/MIGRATION-71de101-to-current.md).
 Daily use and recovery are in
 [`docs/OPERATIONS.md`](docs/OPERATIONS.md).
 

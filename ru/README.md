@@ -7,7 +7,7 @@
 Начните с [`docs/SETUP.md`](docs/SETUP.md): это инструкция по установке нового
 рабочего пространства. Существующее пространство переходит на новую редакцию комплекта
 через [`docs/UPGRADE.md`](docs/UPGRADE.md), а установка, оставшаяся на раскладке
-2026-08-05 (`clones/` + `repos.json`), мигрирует по
+2026-08-05, мигрирует по
 [`docs/MIGRATION-71de101-to-current.md`](docs/MIGRATION-71de101-to-current.md).
 Ежедневная работа и восстановление описаны в
 [`docs/OPERATIONS.md`](docs/OPERATIONS.md).

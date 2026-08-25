@@ -54,8 +54,7 @@ if [ "$rc" -eq 0 ] \
   && grep -q '^expected_base=develop$' <<<"$out" \
   && grep -q '^branch=develop$' <<<"$out" \
   && grep -q '^ahead=0$' <<<"$out" \
-  && grep -q '^behind=0$' <<<"$out" \
-  && grep -q '^untracked=0$' <<<"$out"; then
+  && grep -q '^behind=0$' <<<"$out"; then
   ok "reported the real submodule state"
 else
   no "inspect output was incomplete (rc=$rc)" "$out"
@@ -70,7 +69,7 @@ else
   no "prepare-base did not select develop (rc=$rc)" "$out"
 fi
 
-echo "T3 prepare-base refuses tracked dirty work and leaves the branch unchanged"
+echo "T3 prepare-base refuses dirty work and leaves the branch unchanged"
 G -C "$REPO" checkout --quiet feature/OLD-1
 printf 'dirty\n' >> "$REPO/state.txt"
 out=$(run_state prepare-base); rc=$?
@@ -92,23 +91,53 @@ else
 fi
 restore_repo
 
-echo "T5 prepare-base reports commits that exist on no remote and preserves them"
-# Checking out the base neither moves nor deletes a commit on ANOTHER branch, so it is a
-# warning, not a stop. The one case that could lose work — an unpushed commit on the base
-# itself — is still refused; T7 covers it.
+echo "T5 prepare-base reports an unpushed commit on ANOTHER branch and continues"
 G -C "$REPO" checkout --quiet -b feature/LOCAL-1
 printf 'local\n' > "$REPO/local.txt"
 G -C "$REPO" add local.txt
 G -C "$REPO" commit --quiet -m local
+kept=$(G -C "$REPO" rev-parse feature/LOCAL-1)
 out=$(run_state prepare-base); rc=$?
-if [ "$rc" -eq 0 ] && grep -q "commit(s) exist on no remote" <<<"$out" \
-  && [ "$(G -C "$REPO" branch --show-current)" = develop ] \
-  && G -C "$REPO" show feature/LOCAL-1:local.txt >/dev/null 2>&1; then
-  ok "warned about the local-only commit and left it intact"
+if [ "$rc" -eq 0 ] && grep -q "exist on no remote" <<<"$out" \
+  && [ "$(G -C "$REPO" rev-parse feature/LOCAL-1)" = "$kept" ]; then
+  ok "warned about a foreign local commit without blocking or losing it"
 else
-  no "local-only commit was not reported or not preserved (rc=$rc)" "$out"
+  no "foreign unpushed commit was mishandled (rc=$rc)" "$out"
 fi
+G -C "$REPO" checkout --quiet develop
 G -C "$REPO" branch -D feature/LOCAL-1 >/dev/null 2>&1 || true
+restore_repo
+
+echo "T5b prepare-base still refuses an unpushed commit on the base itself"
+printf 'onbase\n' >> "$REPO/state.txt"
+G -C "$REPO" commit --quiet -am onbase
+out=$(run_state prepare-base); rc=$?
+if [ "$rc" -eq 1 ] && grep -q "develop has 1 unpushed commit" <<<"$out"; then
+  ok "protected an unpushed commit on the base branch"
+else
+  no "base-branch unpushed commit was not protected (rc=$rc)" "$out"
+fi
+restore_repo
+
+echo "T5c a stash warns in prepare-base and assert-change, blocks assert-archivable"
+printf 'stashed\n' >> "$REPO/state.txt"
+G -C "$REPO" stash push --quiet -m corp-test
+prep=$(run_state prepare-base); prep_rc=$?
+G -C "$REPO" checkout --quiet -B feature/DEMO-555 origin/develop
+G -C "$REPO" push --quiet -u origin feature/DEMO-555
+chg=$(run_state assert-change DEMO-555); chg_rc=$?
+arch=$(run_state assert-archivable); arch_rc=$?
+if [ "$prep_rc" -eq 0 ] && grep -q "stash entry(s) present" <<<"$prep" \
+  && [ "$chg_rc" -eq 0 ] && grep -q "stash entry(s) present" <<<"$chg" \
+  && [ "$arch_rc" -eq 1 ] && grep -q "stash entry(s)" <<<"$arch" \
+  && [ "$(G -C "$REPO" stash list | wc -l | tr -d ' ')" = "1" ]; then
+  ok "stash warns in the daily gates, blocks the archive gate, is never touched"
+else
+  no "stash handling was incorrect (prep=$prep_rc change=$chg_rc archive=$arch_rc)" "$prep\n$chg\n$arch"
+fi
+G -C "$REPO" checkout --quiet develop
+G -C "$REPO" branch -D feature/DEMO-555 >/dev/null 2>&1 || true
+G -C "$REPO" push --quiet origin --delete feature/DEMO-555 >/dev/null 2>&1 || true
 restore_repo
 
 echo "T6 prepare-base fast-forwards a clean base"
@@ -170,6 +199,96 @@ else
   no "dirty-state mode was incorrect" "$blocked\n$allowed"
 fi
 
+echo "T12 assert-archivable accepts a feature branch that contains the base"
+restore_repo
+G -C "$REPO" checkout --quiet -B feature/DEMO-321 origin/develop
+printf 'archive\n' >> "$REPO/state.txt"
+G -C "$REPO" commit --quiet -am 'feat(DEMO-321): work'
+out=$(run_state assert-archivable); rc=$?
+if [ "$rc" -eq 0 ] && grep -q "feature/DEMO-321 contains origin/develop" <<<"$out"; then
+  ok "accepted archiving on the current branch"
+else
+  no "archivable branch was rejected (rc=$rc)" "$out"
+fi
+
+echo "T13 assert-archivable rejects a branch that misses the base"
+G -C "$REPO" checkout --quiet -B feature/STALE-1 origin/master
+out=$(run_state assert-archivable); rc=$?
+if [ "$rc" -eq 1 ] && grep -q "does not contain origin/develop" <<<"$out" \
+  && grep -q "stale specs" <<<"$out"; then
+  ok "refused to archive into stale specs"
+else
+  no "stale branch was not rejected (rc=$rc)" "$out"
+fi
+G -C "$REPO" checkout --quiet develop
+G -C "$REPO" branch -D feature/STALE-1 feature/DEMO-321 >/dev/null 2>&1
+restore_repo
+
+echo "T14 assert-change --checkout switches to an existing local story branch"
+restore_repo
+G -C "$REPO" checkout --quiet -B feature/DEMO-777 origin/develop
+G -C "$REPO" push --quiet -u origin feature/DEMO-777
+G -C "$REPO" checkout --quiet develop
+out=$(run_state assert-change DEMO-777 --checkout); rc=$?
+if [ "$rc" -eq 0 ] && grep -q "switched to feature/DEMO-777" <<<"$out" \
+  && [ "$(G -C "$REPO" rev-parse --abbrev-ref HEAD)" = "feature/DEMO-777" ]; then
+  ok "switched to the existing story branch"
+else
+  no "checkout of an existing branch failed (rc=$rc)" "$out"
+fi
+
+echo "T15 assert-change --checkout tracks a branch that exists only on origin"
+G -C "$REPO" checkout --quiet develop
+G -C "$REPO" branch -D feature/DEMO-777 >/dev/null
+out=$(run_state assert-change DEMO-777 --checkout); rc=$?
+if [ "$rc" -eq 0 ] && grep -q "tracking origin/feature/DEMO-777" <<<"$out" \
+  && [ "$(G -C "$REPO" rev-parse --abbrev-ref HEAD)" = "feature/DEMO-777" ]; then
+  ok "recreated the local branch from origin"
+else
+  no "origin-only branch was not tracked (rc=$rc)" "$out"
+fi
+
+echo "T16 assert-change --checkout never creates a branch that exists nowhere"
+G -C "$REPO" checkout --quiet develop
+G -C "$REPO" branch -D feature/DEMO-777 >/dev/null
+G -C "$REPO" push --quiet origin --delete feature/DEMO-777 >/dev/null 2>&1
+out=$(run_state assert-change DEMO-888 --checkout); rc=$?
+if [ "$rc" -eq 1 ] && grep -q "does not exist locally or on origin" <<<"$out" \
+  && grep -q "never cuts a new branch" <<<"$out" \
+  && [ "$(G -C "$REPO" rev-parse --abbrev-ref HEAD)" = "develop" ]; then
+  ok "refused to invent a story branch"
+else
+  no "missing branch was mishandled (rc=$rc)" "$out"
+fi
+
+echo "T17 assert-change --checkout refuses to move dirty work without permission"
+G -C "$REPO" checkout --quiet -B feature/DEMO-999 origin/develop
+G -C "$REPO" push --quiet -u origin feature/DEMO-999
+G -C "$REPO" checkout --quiet develop
+printf 'unsaved\n' >> "$REPO/state.txt"
+out=$(run_state assert-change DEMO-999 --checkout); rc=$?
+if [ "$rc" -eq 1 ] && grep -q "uncommitted changes to TRACKED files" <<<"$out" \
+  && [ "$(G -C "$REPO" rev-parse --abbrev-ref HEAD)" = "develop" ] \
+  && grep -q unsaved "$REPO/state.txt"; then
+  ok "kept dirty work where it was"
+else
+  no "dirty switch was not refused (rc=$rc)" "$out"
+fi
+
+echo "T18 assert-change --checkout --allow-dirty carries interrupted work to the story branch"
+out=$(run_state assert-change DEMO-999 --checkout --allow-dirty); rc=$?
+if [ "$rc" -eq 0 ] && [ "$(G -C "$REPO" rev-parse --abbrev-ref HEAD)" = "feature/DEMO-999" ] \
+  && grep -q unsaved "$REPO/state.txt"; then
+  ok "moved the branch and kept the edits"
+else
+  no "explicit dirty switch failed (rc=$rc)" "$out"
+fi
+G -C "$REPO" checkout --quiet -- state.txt 2>/dev/null
+G -C "$REPO" checkout --quiet develop 2>/dev/null
+restore_repo
+G -C "$REPO" branch -D feature/DEMO-999 >/dev/null 2>&1
+G -C "$REPO" push --quiet origin --delete feature/DEMO-999 >/dev/null 2>&1
+
 echo "T11 a standalone repository uses its durable corp.baseBranch setting"
 G -C "$TEST_ROOT/seed" config corp.baseBranch master
 out=$(bash "$SCRIPT" inspect --repo "$TEST_ROOT/seed" 2>&1); rc=$?
@@ -179,20 +298,25 @@ else
   no "ignored corp.baseBranch (rc=$rc)" "$out"
 fi
 
-echo "T12 untracked files never block a gate, and inspect counts them"
+echo "T18b untracked files never block any mode"
 restore_repo
-G -C "$REPO" checkout --quiet feature/DEMO-123
-printf 'scratch\n' > "$REPO/scratch.local"
-seen=$(run_state inspect); seen_rc=$?
-gated=$(run_state assert-change DEMO-123); gated_rc=$?
-if [ "$seen_rc" -eq 0 ] && grep -q '^untracked=1$' <<<"$seen" \
-  && [ "$gated_rc" -eq 0 ] && grep -q "untracked file(s) present" <<<"$gated" \
-  && [ -f "$REPO/scratch.local" ]; then
-  ok "counted the untracked file, warned, and let the gate pass"
+G -C "$REPO" checkout --quiet -b feature/DEMO-777 develop 2>/dev/null || G -C "$REPO" checkout --quiet feature/DEMO-777
+G -C "$REPO" push --quiet -u origin feature/DEMO-777 >/dev/null 2>&1
+printf 'password=hunter2\n' > "$REPO/local-settings.properties"
+printf 'junk\n' > "$REPO/build-output.tmp"
+out=$(run_state assert-change DEMO-777); rc=$?
+if [ "$rc" -eq 0 ] && grep -q "untracked file(s) present" <<<"$out"; then
+  ok "local-only files were reported, not enforced"
 else
-  no "untracked handling was incorrect (inspect rc=$seen_rc, gate rc=$gated_rc)" "$seen\n$gated"
+  no "untracked files blocked the gate (rc=$rc)" "$out"
 fi
-rm -f "$REPO/scratch.local"
+if grep -q "^untracked=2" <<<"$(run_state inspect)"; then
+  ok "inspect counts untracked files separately"
+else
+  no "inspect does not report untracked separately" "$(run_state inspect)"
+fi
+rm -f "$REPO/local-settings.properties" "$REPO/build-output.tmp"
+G -C "$REPO" push --quiet origin --delete feature/DEMO-777 >/dev/null 2>&1
 restore_repo
 
 echo
