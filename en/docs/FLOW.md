@@ -4,7 +4,10 @@ This is the short English workflow reference. Installation is documented only in
 [`SETUP.md`](SETUP.md); daily use is documented only in
 [`OPERATIONS.md`](OPERATIONS.md).
 
-The same seven stages as a one-screen diagram: [`FLOW-SCHEMA.md`](FLOW-SCHEMA.md).
+The same seven stages twice more: [`FLOW-TABLE.md`](FLOW-TABLE.md) is the wide table — per step,
+what Corp SDD performs, the OpenSpec call, the Superpowers discipline, the scripts that actually
+run, the exit gate, and the value over vanilla OpenSpec. [`FLOW-SCHEMA.md`](FLOW-SCHEMA.md) is the
+one-screen diagram.
 
 ## Installation boundary
 

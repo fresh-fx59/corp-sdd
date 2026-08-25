@@ -11,7 +11,7 @@ check() { if "$@"; then pass "$*"; else fail "$*"; fi; }
 
 printf 'T1 compact current documentation\n'
 docs="$(find "$KIT/docs" -maxdepth 1 -type f -exec basename {} \; | LC_ALL=C sort | tr '\n' ' ')"
-if [ "$docs" = "FLOW-SCHEMA.md FLOW.md OPERATIONS.md SETUP.md " ]; then pass "only SETUP.md, OPERATIONS.md, FLOW.md and FLOW-SCHEMA.md ship"; else fail "unexpected docs: $docs"; fi
+if [ "$docs" = "FLOW-SCHEMA.md FLOW-TABLE.md FLOW.md OPERATIONS.md SETUP.md " ]; then pass "only SETUP.md, OPERATIONS.md and the three FLOW references ship"; else fail "unexpected docs: $docs"; fi
 
 printf 'T2 submodule layout and inventory contract\n'
 check test -f "$KIT/config/project-repositories.json.example"

@@ -10,6 +10,8 @@ upgrade runbook. Daily use and recovery are in
 
 The workflow itself is described twice, and neither file installs anything:
 [`docs/FLOW.md`](docs/FLOW.md) is the seven-stage table, one row per `corp-*` command;
+[`docs/FLOW-TABLE.md`](docs/FLOW-TABLE.md) is the wide table with the OpenSpec call, the
+Superpowers discipline, the scripts that actually run, the exit gate and the value per step;
 [`docs/FLOW-SCHEMA.md`](docs/FLOW-SCHEMA.md) is the same seven stages as a one-screen diagram.
 
 ## Resulting workspace

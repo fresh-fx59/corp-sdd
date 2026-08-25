@@ -4,7 +4,10 @@
 [`SETUP.md`](SETUP.md), а ежедневная работа — только в
 [`OPERATIONS.md`](OPERATIONS.md).
 
-Те же семь этапов одной схемой: [`FLOW-SCHEMA.md`](FLOW-SCHEMA.md).
+Те же семь этапов ещё в двух видах: [`FLOW-TABLE.md`](FLOW-TABLE.md) — большая таблица: что делает
+Corp SDD, какой вызов OpenSpec, какая дисциплина Superpowers, какие скрипты реально запускаются,
+выходное условие и ценность по сравнению с базовым OpenSpec. [`FLOW-SCHEMA.md`](FLOW-SCHEMA.md) —
+схема на один экран.
 
 ## Граница установки
 

@@ -6,10 +6,10 @@ and contract checks.
 
 ## Start here
 
-| Language | Installation | Daily operations | Workflow reference | Schema |
-|---|---|---|---|---|
-| English | [`en/docs/SETUP.md`](en/docs/SETUP.md) | [`en/docs/OPERATIONS.md`](en/docs/OPERATIONS.md) | [`en/docs/FLOW.md`](en/docs/FLOW.md) | [`en/docs/FLOW-SCHEMA.md`](en/docs/FLOW-SCHEMA.md) |
-| Русский | [`ru/docs/SETUP.md`](ru/docs/SETUP.md) | [`ru/docs/OPERATIONS.md`](ru/docs/OPERATIONS.md) | [`ru/docs/FLOW.md`](ru/docs/FLOW.md) | [`ru/docs/FLOW-SCHEMA.md`](ru/docs/FLOW-SCHEMA.md) |
+| Language | Installation | Daily operations | Workflow reference | Wide table | Schema |
+|---|---|---|---|---|---|
+| English | [`en/docs/SETUP.md`](en/docs/SETUP.md) | [`en/docs/OPERATIONS.md`](en/docs/OPERATIONS.md) | [`en/docs/FLOW.md`](en/docs/FLOW.md) | [`en/docs/FLOW-TABLE.md`](en/docs/FLOW-TABLE.md) | [`en/docs/FLOW-SCHEMA.md`](en/docs/FLOW-SCHEMA.md) |
+| Русский | [`ru/docs/SETUP.md`](ru/docs/SETUP.md) | [`ru/docs/OPERATIONS.md`](ru/docs/OPERATIONS.md) | [`ru/docs/FLOW.md`](ru/docs/FLOW.md) | [`ru/docs/FLOW-TABLE.md`](ru/docs/FLOW-TABLE.md) | [`ru/docs/FLOW-SCHEMA.md`](ru/docs/FLOW-SCHEMA.md) |
 
 Setup creates this operational layout:
 
@@ -36,8 +36,8 @@ Corp skills; an external Superpowers installation is not required.
 - `tools/versions.mjs` and `.githooks/pre-commit`: the automatic version stamper.
 
 Each language kit keeps two operational documents — `SETUP.md` and `OPERATIONS.md` — plus two
-reference documents that install nothing: `FLOW.md` (the seven-stage table) and `FLOW-SCHEMA.md`
-(the same stages as a diagram).
+reference documents that install nothing: `FLOW.md` (the short seven-stage reference),
+`FLOW-TABLE.md` (the wide per-step table) and `FLOW-SCHEMA.md` (the same stages as a diagram).
 Commands contain port-resolved OpenSpec placeholders which setup replaces with the generated
 command names for the detected corporate agent.
 

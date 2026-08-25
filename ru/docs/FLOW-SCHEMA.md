@@ -1,7 +1,8 @@
 # Corp SDD — схема процесса поставки
 
 > Схема на один экран. Полное описание процесса с таблицей по командам —
-> [`FLOW.md`](FLOW.md); установка — [`SETUP.md`](SETUP.md), ежедневная работа —
+> [`FLOW.md`](FLOW.md), большая таблица по шагам — [`FLOW-TABLE.md`](FLOW-TABLE.md);
+> установка — [`SETUP.md`](SETUP.md), ежедневная работа —
 > [`OPERATIONS.md`](OPERATIONS.md).
 
 ```text
