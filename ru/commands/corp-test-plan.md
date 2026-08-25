@@ -1,5 +1,6 @@
 ---
 description: Превратить сценарии утверждённой delta spec в ручной test plan
+version: 1.0.0
 ---
 Создай ручной test plan для {{args}}.
 0. Установи `REPO_ROOT="$(git rev-parse --show-toplevel)"`. Выполни

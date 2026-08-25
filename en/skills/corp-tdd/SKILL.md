@@ -1,6 +1,7 @@
 ---
 name: corp-tdd
 description: Tiered test-driven development for this stack (Java/Spring, Flink, Next.js). Use for ALL implementation work.
+version: 1.0.0
 ---
 ## Iron law
 No production code without a failing test first. No exceptions for "trivial" changes — trivial

@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# corp-sdd-version: 1.0.0
 # check-openspec-root.sh — refuse to run the SDD flow against the wrong OpenSpec root.
 #
 # OpenSpec resolves its root by walking UP from the current directory looking for openspec/.

@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// corp-sdd-version: 1.0.0
 // gen-index.mjs — generates openspec/index.json + index.md from openspec/specs/ (+ optional build/modules.txt).
 // Deterministic across machines: byte-wise sort (no locale), digest built from sorted content,
 // repo name from committed openspec/repo.txt (never from the checkout folder name).

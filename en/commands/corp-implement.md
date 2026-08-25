@@ -1,5 +1,6 @@
 ---
 description: Implement the current change task-by-task under TDD discipline (dev flow)
+version: 1.0.0
 ---
 Implement change {{args}}.
 Discipline: follow skills corp-tdd (all coding), corp-verification (all done-claims),

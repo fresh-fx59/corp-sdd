@@ -1,5 +1,6 @@
 ---
 description: Реализовать текущее изменение по задачам с дисциплиной TDD
+version: 1.0.0
 ---
 Реализуй изменение {{args}}. Следуй corp-tdd, corp-verification, corp-debugging и corp-drill-down.
 0. Установи `REPO_ROOT="$(git rev-parse --show-toplevel)"`. Выполни

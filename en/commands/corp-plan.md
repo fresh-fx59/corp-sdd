@@ -1,5 +1,6 @@
 ---
 description: Generate design + tasks for an approved change, against TODAY's code (dev flow)
+version: 1.0.0
 ---
 Plan change {{args}}. Follow skills corp-drill-down (all system facts) and corp-verification.
 Precondition: proposal + delta spec exist and are approved — if not, STOP

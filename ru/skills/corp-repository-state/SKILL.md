@@ -1,6 +1,7 @@
 ---
 name: corp-repository-state
 description: Проверка и безопасная подготовка Git-состояния перед любой Corp SDD командой.
+version: 1.0.0
 ---
 # Состояние репозитория Corp SDD
 

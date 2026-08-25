@@ -1,5 +1,6 @@
 ---
 description: Post-merge close-out — fold the delta into living specs, ADR, index (dev flow, on main)
+version: 1.0.0
 ---
 Archive change {{args}}. Follow skill corp-verification (evidence for every step below).
 Set `REPO_ROOT="$(git rev-parse --show-toplevel)"`. Run

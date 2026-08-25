@@ -1,6 +1,7 @@
 ---
 name: corp-code-review
 description: Giving and receiving review on agent-written diffs. Use for corp-review runs and when responding to review feedback.
+version: 1.0.0
 ---
 ## Giving review (the order matters)
 0. Coverage from the machine first: `<opsx-verify-command>` reports incomplete tasks, unimplemented

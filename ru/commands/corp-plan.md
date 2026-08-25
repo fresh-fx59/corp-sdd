@@ -1,5 +1,6 @@
 ---
 description: Создать design и tasks утверждённого изменения по текущему коду
+version: 1.0.0
 ---
 Спланируй {{args}}. Следуй corp-drill-down и corp-verification.
 Условие: proposal и delta spec существуют и утверждены. Иначе остановись и назови пробел.

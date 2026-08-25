@@ -1,5 +1,6 @@
 ---
 description: Создать delta spec истории; при необходимости разнести её по репозиториям
+version: 1.0.0
 ---
 Ты готовишь спеку для истории {{args}}. Следуй corp-drill-down и corp-verification.
 

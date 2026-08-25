@@ -1,5 +1,6 @@
 ---
 description: Закрытие после merge — перенос delta в живые спеки, ADR и индекс
+version: 1.0.0
 ---
 Архивируй изменение {{args}}. Следуй навыку corp-verification.
 Установи `REPO_ROOT="$(git rev-parse --show-toplevel)"`. Выполни

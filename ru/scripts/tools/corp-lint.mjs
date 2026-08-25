@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// corp-sdd-version: 1.0.0
 // corp-lint.mjs — deterministic disposer for agent-written docs. Zero dependencies.
 // Scope: openspec/, docs/, .qwen/ only (never lints build output or source code docs).
 // Checks: hard file caps, index<->spec bijection + index schema, relative links + anchors,

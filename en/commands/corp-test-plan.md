@@ -1,5 +1,6 @@
 ---
 description: Turn an approved delta spec's scenarios into a manual test checklist (tester flow)
+version: 1.0.0
 ---
 Build the manual test plan for change {{args}}.
 0. Set `REPO_ROOT="$(git rev-parse --show-toplevel)"`. Run

@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# corp-sdd-version: 1.0.0
 # verify-docs.sh — the disposer entry point. One code path, four triggers:
 # agent post-write self-check / lefthook pre-commit / on demand / Jenkins backstop.
 set -uo pipefail

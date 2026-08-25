@@ -1,5 +1,6 @@
 ---
 description: Draft the delta spec(s) for a story via interview; fan out across repos when needed (analyst flow)
+version: 1.0.0
 ---
 You are drafting the spec for story {{args}}.
 Follow skills corp-drill-down (all system facts) and corp-verification (all done-claims).

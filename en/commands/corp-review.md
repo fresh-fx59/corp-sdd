@@ -1,5 +1,6 @@
 ---
 description: Structured pre-review of a diff before humans spend time (any role)
+version: 1.0.0
 ---
 Review the diff of {{args}} (branch/PR/change). Follow skill corp-code-review throughout.
 Review in this order, report findings by severity

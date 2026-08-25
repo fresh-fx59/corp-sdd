@@ -1,5 +1,6 @@
 ---
 description: Структурированное предварительное ревью diff до ревью человеком
+version: 1.0.0
 ---
 Проверь diff {{args}}. Следуй corp-code-review. Дай findings по важности
 (blocker / serious / minor), каждый с file:line и конкретным исправлением.
