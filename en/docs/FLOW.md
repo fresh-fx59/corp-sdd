@@ -1,8 +1,10 @@
 # Corp SDD flow
 
 This is the short English workflow reference. Installation is documented only in
-[`en/docs/SETUP.md`](en/docs/SETUP.md); daily use is documented only in
-[`en/docs/OPERATIONS.md`](en/docs/OPERATIONS.md).
+[`SETUP.md`](SETUP.md); daily use is documented only in
+[`OPERATIONS.md`](OPERATIONS.md).
+
+The same seven stages as a one-screen diagram: [`FLOW-SCHEMA.md`](FLOW-SCHEMA.md).
 
 ## Installation boundary
 

@@ -6,10 +6,10 @@ and contract checks.
 
 ## Start here
 
-| Language | Installation | Daily operations |
-|---|---|---|
-| English | [`en/docs/SETUP.md`](en/docs/SETUP.md) | [`en/docs/OPERATIONS.md`](en/docs/OPERATIONS.md) |
-| Русский | [`ru/docs/SETUP.md`](ru/docs/SETUP.md) | [`ru/docs/OPERATIONS.md`](ru/docs/OPERATIONS.md) |
+| Language | Installation | Daily operations | Workflow reference | Schema |
+|---|---|---|---|---|
+| English | [`en/docs/SETUP.md`](en/docs/SETUP.md) | [`en/docs/OPERATIONS.md`](en/docs/OPERATIONS.md) | [`en/docs/FLOW.md`](en/docs/FLOW.md) | [`en/docs/FLOW-SCHEMA.md`](en/docs/FLOW-SCHEMA.md) |
+| Русский | [`ru/docs/SETUP.md`](ru/docs/SETUP.md) | [`ru/docs/OPERATIONS.md`](ru/docs/OPERATIONS.md) | [`ru/docs/FLOW.md`](ru/docs/FLOW.md) | [`ru/docs/FLOW-SCHEMA.md`](ru/docs/FLOW-SCHEMA.md) |
 
 Setup creates this operational layout:
 
@@ -31,12 +31,13 @@ Corp skills; an external Superpowers installation is not required.
 
 - `en/` and `ru/`: equivalent English and Russian kits;
 - `tests/`: local Git acceptance tests for both language trees;
-- `CORP-SDD-FLOW.md` and `CORP-SDD-FLOW-RU.md`: short workflow references;
 - `docs/index.html`: the published presentation; its source lives in each language kit.
 - `VERSIONS.md`: the version of every shipped command, skill, and script;
 - `tools/versions.mjs` and `.githooks/pre-commit`: the automatic version stamper.
 
-Each language kit keeps only two operational documents: `SETUP.md` and `OPERATIONS.md`.
+Each language kit keeps two operational documents — `SETUP.md` and `OPERATIONS.md` — plus two
+reference documents that install nothing: `FLOW.md` (the seven-stage table) and `FLOW-SCHEMA.md`
+(the same stages as a diagram).
 Commands contain port-resolved OpenSpec placeholders which setup replaces with the generated
 command names for the detected corporate agent.
 

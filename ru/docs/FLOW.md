@@ -1,8 +1,10 @@
 # Процесс Corp SDD
 
 Это краткое описание процесса на русском языке. Установка описана только в
-[`ru/docs/SETUP.md`](ru/docs/SETUP.md), а ежедневная работа — только в
-[`ru/docs/OPERATIONS.md`](ru/docs/OPERATIONS.md).
+[`SETUP.md`](SETUP.md), а ежедневная работа — только в
+[`OPERATIONS.md`](OPERATIONS.md).
+
+Те же семь этапов одной схемой: [`FLOW-SCHEMA.md`](FLOW-SCHEMA.md).
 
 ## Граница установки
 
