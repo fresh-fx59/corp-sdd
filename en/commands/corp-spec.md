@@ -1,6 +1,6 @@
 ---
 description: Draft the delta spec(s) for a story via interview; fan out across repos when needed (analyst flow)
-corp-version: 2026-08-26.5
+corp-version: 2026-08-26.6
 ---
 You are drafting the spec for story {{args}}.
 `<change-id>` is the OpenSpec change folder name; `<openspec>` is the OpenSpec CLI invocation setup

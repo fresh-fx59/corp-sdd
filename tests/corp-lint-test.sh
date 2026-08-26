@@ -196,6 +196,45 @@ out=$(node "$LINT" "$P" 2>&1); rc=$?
 if [ "$rc" -eq 0 ]; then ok "both headings present passes"; else no "a valid proposal was rejected (rc=$rc)" "$out"; fi
 rm -rf "$P"
 
+echo "L13 MODIFIED against a capability with no living spec fails here, not after the merge"
+M="$(mktemp -d)"; mkdir -p "$M/openspec/changes/c1/specs/billing" "$M/docs"
+printf '## Why\nx\n\n## What Changes\n- y\n' > "$M/openspec/changes/c1/proposal.md"
+cat > "$M/openspec/changes/c1/specs/billing/spec.md" <<'EOF'
+## MODIFIED Requirements
+### Requirement: X
+The service SHALL expose GET /x and return 200.
+
+#### Scenario: ok
+- WHEN x
+- THEN 200
+EOF
+out=$(node "$LINT" "$M" 2>&1); rc=$?
+if [ "$rc" -eq 1 ] && grep -q 'has no living spec' <<<"$out"; then
+  ok "the archive-time failure is moved to authoring time"
+else
+  no "a MODIFIED delta openspec archive would refuse was accepted (rc=$rc)" "$out"
+fi
+mkdir -p "$M/openspec/specs/billing"
+cat > "$M/openspec/specs/billing/spec.md" <<'EOF'
+## Purpose
+Billing capability for the service.
+
+## Requirements
+### Requirement: X
+The service SHALL expose GET /x and return 200.
+
+#### Scenario: ok
+- WHEN x
+- THEN 200
+EOF
+out=$(node "$LINT" "$M" 2>&1)
+if ! grep -q 'has no living spec' <<<"$out"; then
+  ok "a MODIFIED delta with its living spec present is accepted"
+else
+  no "a legitimate MODIFIED delta was rejected" "$out"
+fi
+rm -rf "$M"
+
 echo
 echo "PASS=$PASS FAIL=$FAIL"
 [ "$FAIL" -eq 0 ]

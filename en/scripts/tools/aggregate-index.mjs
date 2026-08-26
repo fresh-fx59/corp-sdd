@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// corp-version: 2026-08-26.5
+// corp-version: 2026-08-26.6
 // aggregate-index.mjs — build the store catalog from registered Git submodules.
 // Central = routing hint only. Invalid/missing spoke index => RED + last-good data.
 import { readFileSync, writeFileSync, existsSync, realpathSync } from 'node:fs';

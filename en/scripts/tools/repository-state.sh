@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# corp-version: 2026-08-26.5
+# corp-version: 2026-08-26.6
 # repository-state.sh — inspect and enforce the Git state expected by Corp SDD.
 # Never resets, cleans, rebases, force-checks out, mutates stashes, or deletes work.
 set -uo pipefail
@@ -100,6 +100,21 @@ if ! git check-ref-format --branch "$BASE" >/dev/null 2>&1; then
   exit 2
 fi
 
+# OpenSpec resolves its root by walking UP from the repository looking for an `openspec/`
+# directory, and the walk does not stop at a `.git` boundary. A submodule that was never
+# `openspec init`-ed therefore resolves to the STORE's root, and every artifact an agent writes
+# lands in the hub with no warning — measured on 1.10.0: `new change` from such a repository
+# printed `Created change ... at <store>/openspec/changes/...`. Upstream only treats a directory
+# with real content as a root, so an empty `openspec/` shell does not count here either.
+openspec_root=""
+_d="$REPO"
+while :; do
+  if [ -d "$_d/openspec" ] && [ -n "$(ls -A "$_d/openspec" 2>/dev/null)" ]; then openspec_root="$_d"; break; fi
+  _p=$(dirname "$_d")
+  [ "$_p" = "$_d" ] && break
+  _d="$_p"
+done
+
 branch=$(git -C "$REPO" symbolic-ref --quiet --short HEAD 2>/dev/null || true)
 upstream=$(git -C "$REPO" rev-parse --abbrev-ref --symbolic-full-name '@{u}' 2>/dev/null || true)
 # `dirty` counts TRACKED changes only. Untracked files are never a reason to stop: a working
@@ -126,6 +141,7 @@ fi
 
 print_state() {
   printf 'repo=%s\n' "$REPO"
+  printf 'openspec_root=%s\n' "${openspec_root:-NONE}"
   printf 'expected_base=%s\n' "$BASE"
   printf 'branch=%s\n' "${branch:-DETACHED}"
   printf 'upstream=%s\n' "${upstream:-NONE}"
@@ -150,6 +166,14 @@ die_state() {
   exit 1
 }
 
+# Asserting modes only: `inspect` stays evidence-only, so a not-yet-onboarded repository can still
+# be looked at. The system store legitimately owns an openspec/ root, so this passes there too.
+if [ "$openspec_root" != "$REPO" ]; then
+  die_state "OpenSpec root is not this repository" \
+    "  ↳ resolved root: ${openspec_root:-NONE}" \
+    "  ↳ every spec written here would land there instead — openspec walks up past .git" \
+    "  ↳ onboard this repository (SETUP stage 5: openspec init, then check-openspec-root.sh)"
+fi
 [ -n "$branch" ] || die_state "detached HEAD" "  ↳ inspect it: git -C \"$REPO\" log -1 --oneline"
 if [ "$dirty" -eq 1 ] && { [ "$MODE" != assert-change ] || [ "$ALLOW_DIRTY" -eq 0 ]; }; then
   if [ -n "$dirty_submodules" ]; then

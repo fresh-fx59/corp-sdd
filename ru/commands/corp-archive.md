@@ -1,6 +1,6 @@
 ---
 description: Закрытие после merge — перенос delta в живые спеки, ADR и индекс
-corp-version: 2026-08-26.5
+corp-version: 2026-08-26.6
 ---
 Архивируй изменение {{args}}. Следуй навыку corp-verification.
 `<openspec>` — вызов CLI OpenSpec, подставленный при установке.

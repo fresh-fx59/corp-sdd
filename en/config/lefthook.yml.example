@@ -3,6 +3,14 @@ pre-commit:
   commands:
     docs-disposer:
       run: bash tools/verify-docs.sh
+    # The branch name is checked HERE as well as on push, and this is the copy that always runs.
+    # lefthook skips any pre-push command when the push carries no files it can list — which is
+    # exactly the push that publishes a brand-new branch, the first time the name matters. Verified
+    # in lefthook's own build_command.go: `SkipError{"no matching push files"}`, with no YAML-level
+    # override (only `lefthook run pre-push --force`). A commit always has staged files, so this
+    # copy cannot be skipped, and a bad branch name is refused before the first commit lands on it.
+    branch-convention:
+      run: bash tools/check-git-naming.sh --branch
 
 commit-msg:
   commands:
@@ -13,4 +21,5 @@ commit-msg:
 pre-push:
   commands:
     branch-convention:
+      # Backstop only — see the pre-commit note; this one is skipped on a new-branch push.
       run: bash tools/check-git-naming.sh --branch

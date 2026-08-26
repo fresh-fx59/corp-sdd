@@ -47,7 +47,7 @@ required.
 - `config/`: normalized inventory example and lefthook example;
 - `slides/`: the talk deck and its editable source.
 
-The acceptance suites that gate this kit are not shipped inside the kit: all eight live at
+The acceptance suites that gate this kit are not shipped inside the kit: all nine live at
 `tests/` in the repository root, beside the two language copies, and each one is run against
 this tree's shipped files by passing the file under test as its first argument, for example
 `bash tests/corp-lint-test.sh en/scripts/tools/corp-lint.mjs`.

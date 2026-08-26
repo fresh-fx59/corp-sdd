@@ -64,7 +64,7 @@ test -f "$OLD_ROOT/VERSION" && echo "UNEXPECTED: old checkout has a VERSION" || 
 
 Expected:
 - `cat VERSION` prints the new edition (at the time this runbook was written:
-  `2026-08-26.5`). Use whatever the file says; do not hardcode it below.
+  `2026-08-26.6`). Use whatever the file says; do not hardcode it below.
 - `kit-version.sh verify` prints `✓ 24 file(s) match <edition>` and exits 0.
   **A kit that fails its own manifest is not a release — re-unpack it and stop.**
 - `rev-parse HEAD` prints `71de101…`.
@@ -982,6 +982,7 @@ Expected end state: `"valid": true` for every change. Fix each failure at its ca
 | lint: `no "## What Changes" section` (proposal.md) | the proposal carries no literal `## What Changes` heading | Add one beside `## Why` — the schema expects the pair. New hard error in `corp-lint.mjs` (check 4b). |
 | CLI: missing delta section / no requirement in a delta section | no `## ADDED Requirements` etc. | Add the section header. `DELTA_SECTION` is `/^##\s+(ADDED\|MODIFIED\|REMOVED\|RENAMED)\s+Requirements\s*$/im`. |
 | CLI: ADDED/MODIFIED requirement with no scenario | no level-4 heading under it | Add at least one. Any `####` heading counts, including `#### Сценарий: …`. |
+| lint: `MODIFIED targets capability "<id>", which has no living spec` | a `MODIFIED`/`REMOVED`/`RENAMED` delta whose capability has no `openspec/specs/<id>/spec.md` | Use `## ADDED Requirements` for a capability that has no living spec yet, or fix the capability directory name. `validate --strict` reports `"valid": true` here; `openspec archive` then fails post-merge with `archive_spec_update_failed: "<id>: target spec does not exist; only ADDED requirements are allowed for new specs. MODIFIED and RENAMED operations require an existing spec."` New hard error in `corp-lint.mjs`. |
 | lint warning: `requirement "<x>" states no SHALL/MUST` | normative verb missing | Put SHALL or MUST in the requirement text. |
 | lint warning: `requirement "<x>" names no observable surface` | nothing a black-box tester can send or observe | Name the endpoint, topic, table, status code or query in a scenario. A requirement checkable only from inside belongs to `corp-autotest`, not `corp-test-plan`. |
 
@@ -1011,10 +1012,21 @@ input**, in the store and in one representative spoke (`docs/SETUP.md` §8):
 3. a bad branch name and a mismatched ticket commit must fail `check-git-naming.sh`;
 4. `git -C "<repo>" config core.hooksPath` must be empty or point at that
    repository's hooks;
-5. a deliberate bad temporary commit must be rejected by the installed lefthook hook.
+5. a deliberate bad temporary commit must be rejected by the installed lefthook hook;
+6. a repository that does not own its own OpenSpec root must be refused by every
+   asserting mode of `repository-state.sh` — `prepare-base`, `assert-change` and
+   `assert-archivable` — with `✗ OpenSpec root is not this repository` followed by
+   `  ↳ resolved root: <path>`. `inspect` stays non-fatal: it only prints the new
+   `openspec_root=` line, so a not-yet-onboarded repository can still be looked at;
+7. the bad branch name of item 3 must be refused at **pre-commit**, not only at
+   pre-push. `config/lefthook.yml.example` runs `check-git-naming.sh --branch` at both,
+   because lefthook skips a pre-push command when the push carries no files it can list
+   — exactly the push that publishes a brand-new branch, the first time the name
+   matters. A commit always has staged files, so the pre-commit copy cannot be skipped.
 
-Expected: every one of the five is **red**. A green negative test means the guard is
-not wired. Never weaken a guard to make this stage pass.
+Expected: every one of the seven is **red** (item 6 red in the asserting modes only).
+A green negative test means the guard is not wired. Never weaken a guard to make this
+stage pass.
 
 ---
 
@@ -1235,5 +1247,5 @@ be resolved on the target machine before or during the run — do not invent the
    it TEMPLATE. Adapt and smoke-test it; this runbook does not migrate CI.
 10. **The kit edition moves fast.** During the writing of this runbook `VERSION` read
     `2026-08-25.13`, then `2026-08-25.14` minutes later; it was last re-checked against
-    `2026-08-26.5`. Always read `VERSION` on the kit you unpack rather than trusting any
+    `2026-08-26.6`. Always read `VERSION` on the kit you unpack rather than trusting any
     edition string quoted here.

@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// corp-version: 2026-08-26.5
+// corp-version: 2026-08-26.6
 // corp-lint.mjs — deterministic disposer for agent-written docs. Zero dependencies.
 // Scope: openspec/, docs/, and the agent home of whatever CLI this port runs
 // (never lints build output or source code docs). The agent home is NEVER hard-coded:
@@ -251,6 +251,25 @@ for (const p of mdFiles.filter(p => /(^|\/)openspec\/changes\/[^/]+\/specs\/.+\.
   const body = stripCode(txt);
   // No delta section at all is an openspec ERROR ("No delta sections found …"); nothing to add here.
   if (!DELTA_SECTION.test(body)) continue;
+
+  // MODIFIED / REMOVED / RENAMED need a living spec to act on. Measured on OpenSpec 1.10.0: a
+  // MODIFIED delta against a capability that has no openspec/specs/<id>/spec.md validates as
+  // "valid": true and then fails at fold time with
+  //   archive_spec_update_failed: "<id>: target spec does not exist; only ADDED requirements are
+  //   allowed for new specs. MODIFIED and RENAMED operations require an existing spec."
+  // That failure lands post-merge, on the base branch, where recovery is manual — so it is caught
+  // here, at authoring time, where the fix is one word.
+  const capMatch = rel(p).match(/openspec\/changes\/[^/]+\/specs\/(.+)\/[^/]+\.md$/);
+  const capability = capMatch ? capMatch[1] : null;
+  if (capability) {
+    for (const m of body.matchAll(/^##\s+(MODIFIED|REMOVED|RENAMED)\s+Requirements\s*$/gim)) {
+      if (!existsSync(join(ROOT, 'openspec', 'specs', capability, 'spec.md'))) {
+        err(r, `${m[1].toUpperCase()} targets capability "${capability}", which has no living spec`,
+            `openspec/specs/${capability}/spec.md does not exist — openspec archive refuses this delta ("target spec does not exist; only ADDED requirements are allowed for new specs") AFTER the merge, while validate --strict still calls it valid; use ADDED for a new capability, or fix the capability directory name`);
+        break;
+      }
+    }
+  }
 
   // Walk the delta sections so each requirement is judged under the operation that owns it.
   const lines = body.split('\n');

@@ -43,6 +43,13 @@ optional because the required engineering disciplines are included in the kit.
 | Review | `corp-review` | `<openspec> validate <change-id> --type change --strict --json` and `status --change <change-id> --json` before the deeper code review. | Inspect, plus `assert-change <TICKET> --allow-dirty` on a local story branch. |
 | Archive | `corp-archive` | `validate --strict --json`, then `<openspec> archive <change-id> --yes --json` after the pull request is merged. | `prepare-base` (unless `--here`), then `assert-archivable`. |
 
+Every asserting mode of the gate — `prepare-base`, `assert-change`, `assert-archivable` — first
+proves the repository owns its own OpenSpec root, and refuses with
+`✗ OpenSpec root is not this repository` plus `  ↳ resolved root: <path>` when it does not:
+OpenSpec walks UP past `.git` looking for an `openspec/` directory, so a repository that was
+never `openspec init`-ed writes every artifact into the store instead. `inspect` stays
+non-fatal; it only reports the resolved root on its `openspec_root=` line.
+
 `corp-spec`, `corp-plan`, `corp-implement`, `corp-autotest`, and `corp-archive` each finish their
 own Git work: they stage the files they wrote **by path** — never `git add -A` — commit under the
 type `check-git-naming.sh` expects, and push. `corp-implement` commits ONCE, when every task box is
@@ -53,7 +60,8 @@ developer-specific absolute path or on the caller's current directory.
 
 ## Proof
 
-Run the eight scripts in `tests/` against both language kits. They cover submodule
-synchronization, branch safety, aggregation, indexing, path derivation, documentation scope, MCP
-fallback, the explicit `<openspec>` calls, the `corp-lint.mjs` checks themselves, the kit-edition
-stamps and manifest, and the absence of clone-era paths.
+Run the nine scripts in `tests/` against both language kits. They cover submodule
+synchronization, branch safety, the OpenSpec-root ownership gate, aggregation, indexing, path
+derivation, documentation scope, MCP fallback, the explicit `<openspec>` calls, the
+`corp-lint.mjs` checks themselves, the split-brain lint during the cross-repo window, the
+kit-edition stamps and manifest, and the absence of clone-era paths.

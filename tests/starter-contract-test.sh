@@ -10,8 +10,6 @@ fail() { printf '  ✗ %s\n' "$1"; FAIL=$((FAIL + 1)); }
 check() { if "$@"; then pass "$*"; else fail "$*"; fi; }
 
 printf 'T1 compact current documentation\n'
-# In the public repo each language tree also carries three repo-only FLOW documents and the
-# migration runbook. They install nothing; the kit contract is about what the KIT ships.
 REPO_ONLY_DOCS="FLOW-SCHEMA.md FLOW-TABLE.md FLOW.md MIGRATION-71de101-to-current.md"
 docs="$(find "$KIT/docs" -maxdepth 1 -type f -exec basename {} \; | LC_ALL=C sort | tr '\n' ' ')"
 for extra in $REPO_ONLY_DOCS; do docs="${docs/$extra /}"; done
@@ -181,6 +179,13 @@ if rg -q 'instructions specs --change <contract-change-id> --store <store-id> --
   pass "corp-spec carries a disk-read fallback for when the CLI refuses"
 else
   fail "corp-spec has no fallback when show refuses"
+fi
+
+printf 'T7g the branch-name guard runs where lefthook cannot skip it\n'
+if [ "$(rg -c 'check-git-naming.sh --branch' "$KIT/config/lefthook.yml.example")" = "2" ]; then
+  pass "the branch guard runs at pre-commit and pre-push"
+else
+  fail "the branch guard exists only on pre-push, which lefthook skips when a push carries no listable files"
 fi
 
 printf 'T8 corp-archive keeps the write-then-check index order\n'

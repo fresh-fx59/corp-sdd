@@ -57,9 +57,16 @@ Story / request
 - A completed claim needs fresh evidence.
 - A mismatch between specification and code stops work until it is classified.
 - Documentation changes run the repository verification checks: `verify-docs.sh`, which runs the
-  index check, `corp-lint.mjs`, and the contract-split check.
+  index check, `corp-lint.mjs`, and the contract-split check — the last one reading each store's
+  living specs AND the deltas and `store-contract.md` of its active changes, so it also covers the
+  cross-repo window before the contract is archived.
+- Every asserting mode of `repository-state.sh` refuses a repository that does not own its own
+  OpenSpec root (`✗ OpenSpec root is not this repository` · `↳ resolved root: <path>`); `inspect`
+  only reports it. The branch-name guard runs at pre-commit as well as pre-push, because a
+  new-branch push carries no listable files and lefthook skips the pre-push copy.
 - OpenSpec is the authority on delta-spec grammar: every command that writes or reviews a spec
   runs `<openspec> validate <change-id> --type change --strict --json`. The lint keeps only what
-  the CLI is blind to.
+  the CLI is blind to — including a `MODIFIED`/`REMOVED`/`RENAMED` delta with no living spec to
+  act on, which validates as `"valid": true` and only fails at `openspec archive`, after merge.
 - Each command finishes its own Git work: staged BY PATH, committed, pushed. Never `git add -A`.
 - Humans approve plans, execute manual testing, approve, and merge; automation does not claim those actions.

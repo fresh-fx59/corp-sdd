@@ -1,6 +1,6 @@
 ---
 description: Создать delta spec истории; при необходимости разнести её по репозиториям
-corp-version: 2026-08-26.5
+corp-version: 2026-08-26.6
 ---
 Ты готовишь спеку для истории {{args}}. Следуй corp-drill-down и corp-verification.
 `<change-id>` — имя папки изменения OpenSpec; `<openspec>` — вызов CLI OpenSpec, подставленный при

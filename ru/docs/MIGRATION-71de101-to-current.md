@@ -64,7 +64,7 @@ test -f "$OLD_ROOT/VERSION" && echo "UNEXPECTED: old checkout has a VERSION" || 
 
 Ожидается:
 - `cat VERSION` печатает новую редакцию (на момент написания этого runbook:
-  `2026-08-26.5`). Используй то, что говорит файл; не зашивай значение ниже.
+  `2026-08-26.6`). Используй то, что говорит файл; не зашивай значение ниже.
 - `kit-version.sh verify` печатает `✓ 24 file(s) match <edition>` и выходит с 0.
   **Набор, который не проходит собственный манифест, не является релизом — распакуй заново и остановись.**
 - `rev-parse HEAD` печатает `71de101…`.
@@ -982,6 +982,7 @@ git -C "$CORP_SYSTEM_STORE_ROOT" submodule foreach --quiet 'echo "$toplevel/$sm_
 | lint: `no "## What Changes" section` (proposal.md) | в proposal нет дословного заголовка `## What Changes` | Добавь его рядом с `## Why` — схема ждёт пару. Новая жёсткая ошибка в `corp-lint.mjs` (проверка 4b). |
 | CLI: missing delta section / no requirement in a delta section | нет `## ADDED Requirements` и т. п. | Добавь заголовок секции. `DELTA_SECTION` — это `/^##\s+(ADDED\|MODIFIED\|REMOVED\|RENAMED)\s+Requirements\s*$/im`. |
 | CLI: ADDED/MODIFIED requirement with no scenario | под ним нет заголовка четвёртого уровня | Добавь хотя бы один. Годится любой заголовок `####`, включая `#### Сценарий: …`. |
+| lint: `MODIFIED targets capability "<id>", which has no living spec` | дельта `MODIFIED`/`REMOVED`/`RENAMED` на capability, у которой нет `openspec/specs/<id>/spec.md` | Используй `## ADDED Requirements` для capability, у которой ещё нет живой спецификации, или исправь имя каталога capability. `validate --strict` здесь сообщает `"valid": true`; затем `openspec archive` падает уже после merge с `archive_spec_update_failed: "<id>: target spec does not exist; only ADDED requirements are allowed for new specs. MODIFIED and RENAMED operations require an existing spec."` Новая жёсткая ошибка в `corp-lint.mjs`. |
 | lint warning: `requirement "<x>" states no SHALL/MUST` | нет нормативного глагола | Поставь SHALL или MUST в текст требования. |
 | lint warning: `requirement "<x>" names no observable surface` | нет ничего, что тестировщик-чёрный-ящик может отправить или наблюдать | Назови endpoint, топик, таблицу, код статуса или запрос в сценарии. Требование, проверяемое только изнутри, относится к `corp-autotest`, а не к `corp-test-plan`. |
 
@@ -1011,10 +1012,21 @@ bash "$repo/tools/verify-docs.sh"
 3. плохое имя ветки и коммит с несовпадающим тикетом должны провалить `check-git-naming.sh`;
 4. `git -C "<repo>" config core.hooksPath` должен быть пустым или указывать на хуки
    этого репозитория;
-5. намеренно плохой временный коммит должен быть отвергнут установленным хуком lefthook.
+5. намеренно плохой временный коммит должен быть отвергнут установленным хуком lefthook;
+6. репозиторий, которому не принадлежит собственный корень OpenSpec, должен быть отвергнут
+   каждым проверяющим режимом `repository-state.sh` — `prepare-base`, `assert-change` и
+   `assert-archivable` — с `✗ OpenSpec root is not this repository` и следом
+   `  ↳ resolved root: <path>`. `inspect` остаётся нефатальным: он лишь печатает новую
+   строку `openspec_root=`, поэтому ещё не онбордженный репозиторий можно посмотреть;
+7. плохое имя ветки из пункта 3 должно быть отвергнуто на **pre-commit**, а не только на
+   pre-push. `config/lefthook.yml.example` запускает `check-git-naming.sh --branch` на обоих,
+   потому что lefthook пропускает pre-push команду, когда push не несёт файлов, которые он
+   может перечислить, — это ровно тот push, который публикует новую ветку, первый раз, когда
+   имя важно. У коммита всегда есть staged-файлы, поэтому pre-commit копию пропустить нельзя.
 
-Ожидается: все пять **красные**. Зелёный негативный тест значит, что защита
-не подключена. Никогда не ослабляй защиту, чтобы этот этап прошёл.
+Ожидается: все семь **красные** (пункт 6 — красный только в проверяющих режимах).
+Зелёный негативный тест значит, что защита не подключена. Никогда не ослабляй защиту,
+чтобы этот этап прошёл.
 
 ---
 
@@ -1235,5 +1247,5 @@ stash-и не изменились. Держи `$OLD_ROOT` и `$CLONES_DIR`, п�
    его TEMPLATE. Адаптируй и прогони дымовой тест; этот runbook не мигрирует CI.
 10. **Редакция набора двигается быстро.** Во время написания этого runbook `VERSION`
     читался как `2026-08-25.13`, затем через минуты `2026-08-25.14`; последняя сверка была
-    против `2026-08-26.5`. Всегда читай `VERSION` на том наборе, который распаковал, а не
+    против `2026-08-26.6`. Всегда читай `VERSION` на том наборе, который распаковал, а не
     доверяй строке редакции, приведённой здесь.

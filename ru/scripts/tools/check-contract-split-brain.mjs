@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// corp-version: 2026-08-26.5
+// corp-version: 2026-08-26.6
 // check-contract-split-brain.mjs — the split-brain lint. Zero dependencies.
 //
 // Rule (design §"one spec-truth"): a cross-repo contract fact lives in exactly ONE place — the
@@ -8,7 +8,8 @@
 // agent from pasting the payload into a spoke's delta by hand. This catches that.
 //
 // Scope: only repos that declare `references:` in openspec/config.yaml. Others exit 0 immediately.
-// Checks a spoke's specs (living + change deltas) against every referenced store's specs for:
+// Checks a spoke's specs (living + change deltas) against every referenced store's contract
+// sources — living specs AND the delta specs and store-contract.md of its ACTIVE changes — for:
 //   1. a restated `### Requirement:` heading   → ERROR
 //   2. a copied fenced code block (the shape)  → ERROR
 // Missing/unregistered store → WARN (environmental, never blocks a commit).
@@ -92,13 +93,13 @@ const registry = readRegistry(REGISTRY);
 const normHeading = s => s.trim().toLowerCase().replace(/\s+/g, ' ').replace(/[.:;,]+$/, '');
 const normBlock = s => s.split('\n').map(l => l.trim()).filter(Boolean).join('\n');
 
-function specFiles(dir) {
+function specFiles(dir, names = ['spec.md']) {
   const out = [];
   if (!existsSync(dir)) return out;
   for (const e of readdirSync(dir, { withFileTypes: true })) {
     const p = join(dir, e.name);
-    if (e.isDirectory()) out.push(...specFiles(p));
-    else if (e.name === 'spec.md') out.push(p);
+    if (e.isDirectory()) out.push(...specFiles(p, names));
+    else if (names.includes(e.name)) out.push(p);
   }
   return out;
 }
@@ -124,12 +125,23 @@ for (const id of refs) {
     continue;
   }
   const specsDir = join(storePath, 'openspec', 'specs');
-  if (!existsSync(specsDir)) {
-    warns.push(`store '${id}' has no openspec/specs at ${storePath}`);
+  const changesDir = join(storePath, 'openspec', 'changes');
+  // A contract is fingerprinted from the moment it is WRITTEN, not from the moment it is archived.
+  // The kit merges the store contract LAST, so for the whole cross-repo window the contract exists
+  // only at <store>/openspec/changes/<change-id>/specs/<spec-id>/spec.md — and a lint that reads
+  // living specs alone is blind for exactly the window it exists to protect. `store-contract.md`
+  // is read for the same reason: the kit's own template keeps the SHAPE there, so a lint that never
+  // opens that file can never catch a copied shape.
+  const storeSources = [
+    ...specFiles(specsDir).map(f => [f, relative(specsDir, f).split(/[\\/]/)[0]]),
+    ...specFiles(changesDir, ['spec.md', 'store-contract.md'])
+      .map(f => [f, relative(changesDir, f).split(/[\\/]/)[0]]),
+  ];
+  if (storeSources.length === 0) {
+    warns.push(`store '${id}' has no contract sources at ${storePath} (neither openspec/specs nor an active change with a delta)`);
     continue;
   }
-  for (const f of specFiles(specsDir)) {
-    const specId = relative(specsDir, f).split(/[\\/]/)[0];
+  for (const [f, specId] of storeSources) {
     const { headings, blocks } = headingsAndBlocks(readFileSync(f, 'utf8'));
     for (const h of headings) if (!contractHeadings.has(h)) contractHeadings.set(h, `${id}:${specId}`);
     for (const b of blocks) if (!contractBlocks.has(b)) contractBlocks.set(b, `${id}:${specId}`);

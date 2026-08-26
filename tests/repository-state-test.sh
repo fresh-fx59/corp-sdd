@@ -15,7 +15,11 @@ G() { git -c init.defaultBranch=master -c user.email=test@example.invalid -c use
 G init --quiet --bare "$TEST_ROOT/alpha.git"
 G clone --quiet "$TEST_ROOT/alpha.git" "$TEST_ROOT/seed" 2>/dev/null
 printf 'master\n' > "$TEST_ROOT/seed/state.txt"
-G -C "$TEST_ROOT/seed" add state.txt
+# every asserting mode now proves this repository owns its OpenSpec root, so the fixture must be
+# onboarded — an empty openspec/ shell does not count, upstream ignores it too
+mkdir -p "$TEST_ROOT/seed/openspec/changes"
+printf 'alpha\n' > "$TEST_ROOT/seed/openspec/repo.txt"
+G -C "$TEST_ROOT/seed" add state.txt openspec/repo.txt
 G -C "$TEST_ROOT/seed" commit --quiet -m master
 G -C "$TEST_ROOT/seed" push --quiet origin master
 G -C "$TEST_ROOT/seed" checkout --quiet -b develop
@@ -26,7 +30,9 @@ G -C "$TEST_ROOT/seed" push --quiet origin develop
 mkdir -p "$TEST_ROOT/store"
 G -C "$TEST_ROOT/store" init --quiet
 printf 'store\n' > "$TEST_ROOT/store/README.md"
-G -C "$TEST_ROOT/store" add README.md
+mkdir -p "$TEST_ROOT/store/openspec/specs"
+printf 'store\n' > "$TEST_ROOT/store/openspec/repo.txt"
+G -C "$TEST_ROOT/store" add README.md openspec/repo.txt
 G -C "$TEST_ROOT/store" commit --quiet -m init
 GIT_ALLOW_PROTOCOL=file G -C "$TEST_ROOT/store" submodule add --quiet --name alpha -b develop "$TEST_ROOT/alpha.git" submodules/alpha
 G -C "$TEST_ROOT/store" config -f .gitmodules submodule.alpha.branch develop
@@ -322,8 +328,10 @@ restore_repo
 echo "T18c a submodule's untracked build output does not make the parent dirty"
 SUP="$(mktemp -d)"
 G init -q "$SUP/child"; G -C "$SUP/child" config user.email t@t.t; G -C "$SUP/child" config user.name t
-printf 'x\n' > "$SUP/child/f.txt"; G -C "$SUP/child" add f.txt; G -C "$SUP/child" commit -qm init
+mkdir -p "$SUP/child/openspec"; printf 'child\n' > "$SUP/child/openspec/repo.txt"
+printf 'x\n' > "$SUP/child/f.txt"; G -C "$SUP/child" add f.txt openspec/repo.txt; G -C "$SUP/child" commit -qm init
 G init -q "$SUP/parent"; G -C "$SUP/parent" config user.email t@t.t; G -C "$SUP/parent" config user.name t
+mkdir -p "$SUP/parent/openspec"; printf 'parent\n' > "$SUP/parent/openspec/repo.txt"
 G -C "$SUP/parent" -c protocol.file.allow=always submodule add -q "$SUP/child" child >/dev/null 2>&1
 G -C "$SUP/parent" commit -qm "add submodule" >/dev/null
 printf 'junk\n' > "$SUP/parent/child/build.pyc"
@@ -343,6 +351,40 @@ else
   no "a tracked submodule change was ignored" "$out"
 fi
 rm -rf "$SUP"
+
+echo "T19 inspect reports the resolved OpenSpec root without enforcing it"
+out=$(run_state inspect)
+if grep -q "^openspec_root=.*/submodules/alpha$" <<<"$out"; then
+  ok "inspect prints the resolved OpenSpec root"
+else
+  no "inspect does not report openspec_root" "$out"
+fi
+
+echo "T20 a repository that owns no OpenSpec root cannot pass an assert mode"
+NR="$(mktemp -d)"
+G init -q "$NR/store"; G -C "$NR/store" config user.email t@t.t; G -C "$NR/store" config user.name t
+mkdir -p "$NR/store/openspec/specs"; printf 'store\n' > "$NR/store/openspec/repo.txt"
+G -C "$NR/store" add openspec/repo.txt; G -C "$NR/store" commit -qm init
+mkdir -p "$NR/store/submodules/spoke"
+G init -q "$NR/store/submodules/spoke"
+G -C "$NR/store/submodules/spoke" config user.email t@t.t; G -C "$NR/store/submodules/spoke" config user.name t
+printf 'code\n' > "$NR/store/submodules/spoke/main.py"
+G -C "$NR/store/submodules/spoke" add main.py; G -C "$NR/store/submodules/spoke" commit -qm init
+out=$(bash "$SCRIPT" assert-change DEMO-1 --repo "$NR/store/submodules/spoke" --base master 2>&1); rc=$?
+if [ "$rc" -ne 0 ] && grep -q "OpenSpec root is not this repository" <<<"$out" && grep -qE "resolved root: .*/store$" <<<"$out"; then
+  ok "an un-onboarded repository is refused, and the hijacking root is named"
+else
+  no "a repository whose specs would land in the store was accepted (rc=$rc)" "$out"
+fi
+
+echo "T21 inspect still works in that same un-onboarded repository"
+out=$(bash "$SCRIPT" inspect --repo "$NR/store/submodules/spoke" --base master 2>&1); rc=$?
+if [ "$rc" -eq 0 ] && grep -qE "^openspec_root=.*/store$" <<<"$out"; then
+  ok "inspect stayed evidence-only and reported the foreign root"
+else
+  no "inspect wrongly enforced the root (rc=$rc)" "$out"
+fi
+rm -rf "$NR"
 
 echo
 echo "PASS=$PASS FAIL=$FAIL"

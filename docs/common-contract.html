@@ -282,7 +282,7 @@
 
 <div class="wrap">
 <header class="mast">
-  <p class="eyebrow">github.com/fresh-fx59/corp-sdd · kit edition 2026-08-26.5</p>
+  <p class="eyebrow">github.com/fresh-fx59/corp-sdd · kit edition 2026-08-26.6</p>
   <h1>The Common Contract</h1>
   <p class="standfirst">One shape, one owner, one file. Every repository that touches it <b>links</b> that file — and a lint fails the commit if anyone pastes the shape instead. This is how corp-sdd keeps a cross-repo contract from forking into five slightly different truths.</p>
 </header>
@@ -473,32 +473,33 @@ if the CLI refuses (broken contract proposal, unregistered store), read the file
   <figure>
     <div class="scroll">
       <svg viewBox="0 0 900 300" role="img" aria-labelledby="lint-t">
-        <title id="lint-t">The lint reads the spoke's references, resolves each store id through the registry, fingerprints the store's requirement headings and code blocks, then fails if any spoke spec repeats one.</title>
+        <title id="lint-t">The lint reads the spoke's references, resolves each store id through the registry, fingerprints the requirement headings and code blocks of the store's living specs and of the delta specs and store-contract.md of its active changes, then fails if any spoke spec repeats one.</title>
         <defs>
           <marker id="ah2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
             <path d="M0,0 L10,5 L0,10 z" class="svg-accent"/>
           </marker>
         </defs>
 
-        <rect x="14" y="40" width="176" height="88" class="svg-fill-panel2 svg-stroke" stroke-width="1"/>
+        <rect x="14" y="40" width="176" height="104" class="svg-fill-panel2 svg-stroke" stroke-width="1"/>
         <text x="28" y="66" class="lbl-b svg-ink">1 · scope</text>
         <text x="28" y="88" class="lbl svg-ink2">read openspec/</text>
         <text x="28" y="104" class="lbl svg-ink2">config.yaml</text>
         <text x="28" y="120" class="lbl svg-ink3">no references → exit 0</text>
 
-        <rect x="222" y="40" width="176" height="88" class="svg-fill-panel2 svg-stroke" stroke-width="1"/>
+        <rect x="222" y="40" width="176" height="104" class="svg-fill-panel2 svg-stroke" stroke-width="1"/>
         <text x="236" y="66" class="lbl-b svg-ink">2 · resolve</text>
         <text x="236" y="88" class="lbl svg-ink2">registry.yaml</text>
         <text x="236" y="104" class="lbl svg-ink2">id → local_path</text>
         <text x="236" y="120" class="lbl svg-ink3">unregistered → warn</text>
 
-        <rect x="430" y="40" width="196" height="88" class="svg-accent-soft svg-accent-stroke" stroke-width="1"/>
+        <rect x="430" y="40" width="196" height="104" class="svg-accent-soft svg-accent-stroke" stroke-width="1"/>
         <text x="444" y="66" class="lbl-b svg-ink">3 · fingerprint</text>
-        <text x="444" y="88" class="lbl svg-ink2">every store spec.md:</text>
-        <text x="444" y="104" class="lbl svg-ink2">### Requirement: headings</text>
-        <text x="444" y="120" class="lbl svg-ink2">fenced blocks (≥2 lines)</text>
+        <text x="444" y="88" class="lbl svg-ink2">store openspec/specs/**</text>
+        <text x="444" y="104" class="lbl svg-ink2">+ ACTIVE changes: spec.md</text>
+        <text x="444" y="120" class="lbl svg-ink2">+ store-contract.md</text>
+        <text x="444" y="136" class="lbl svg-ink3">headings · fenced blocks ≥2</text>
 
-        <rect x="658" y="40" width="228" height="88" class="svg-fill-panel2 svg-stroke" stroke-width="1"/>
+        <rect x="658" y="40" width="228" height="104" class="svg-fill-panel2 svg-stroke" stroke-width="1"/>
         <text x="672" y="66" class="lbl-b svg-ink">4 · scan this repo</text>
         <text x="672" y="88" class="lbl svg-ink2">openspec/specs/**/spec.md</text>
         <text x="672" y="104" class="lbl svg-ink2">openspec/changes/**/spec.md</text>
@@ -508,7 +509,7 @@ if the CLI refuses (broken contract proposal, unregistered store), read the file
         <path d="M398 84 L426 84" fill="none" class="svg-accent-stroke" stroke-width="1.5" marker-end="url(#ah2)"/>
         <path d="M626 84 L654 84" fill="none" class="svg-accent-stroke" stroke-width="1.5" marker-end="url(#ah2)"/>
 
-        <path d="M772 128 L772 168" fill="none" class="svg-accent-stroke" stroke-width="1.5" marker-end="url(#ah2)"/>
+        <path d="M772 144 L772 168" fill="none" class="svg-accent-stroke" stroke-width="1.5" marker-end="url(#ah2)"/>
 
         <rect x="430" y="182" width="456" height="96" class="svg-fill-panel svg-fail-stroke" stroke-width="1.5"/>
         <text x="446" y="208" class="lbl-b svg-fail">5 · match → ERROR, exit 1</text>
@@ -523,7 +524,7 @@ if the CLI refuses (broken contract proposal, unregistered store), read the file
         <text x="30" y="268" class="lbl svg-ink3">so reformatting a paste does not hide it</text>
       </svg>
     </div>
-    <figcaption>Two error classes only: a restated <code>### Requirement:</code> heading, and a copied multi-line fenced block. One-line fences are ignored — too common to be evidence. A referenced store that is missing or unregistered is a warning, never a commit blocker, because that is an environment problem, not a spec problem.</figcaption>
+    <figcaption>Two error classes only: a restated <code>### Requirement:</code> heading, and a copied multi-line fenced block. One-line fences are ignored — too common to be evidence. Step 3 reads the store's living specs <em>and</em> the delta <code>spec.md</code> plus <code>store-contract.md</code> of its <strong>active</strong> changes: the kit merges the contract last, so for the whole cross-repo window the contract exists only inside a change — a lint that read living specs alone was blind for exactly the window it exists to protect, and <code>store-contract.md</code> is where the kit's own template keeps the shape. A referenced store that is missing or unregistered is a warning, never a commit blocker, because that is an environment problem, not a spec problem.</figcaption>
   </figure>
 
   <div class="duo col">
@@ -730,6 +731,16 @@ CIRCUIT BREAKER: same error surviving 3 attempts → STOP and ask a human.</code
           <td>Always <code>--json --deltas-only</code> on <code>--type change</code></td>
         </tr>
         <tr>
+          <td>Shape pasted into a spoke delta while the contract change is still open</td>
+          <td><span class="pill p-pass">✓ 0</span> the split-brain lint used to pass: it fingerprinted the store's living specs only, and during the cross-repo window the contract exists only at <code>&lt;store&gt;/openspec/changes/&lt;change-id&gt;/specs/&lt;spec-id&gt;/spec.md</code> — blind for exactly the window it exists to protect</td>
+          <td>Fixed in the kit: step 3 now also fingerprints the delta specs and <code>store-contract.md</code> of every ACTIVE change. Upgrade <code>check-contract-split-brain.mjs</code>; no config change</td>
+        </tr>
+        <tr>
+          <td><code>MODIFIED</code>/<code>REMOVED</code>/<code>RENAMED</code> delta for a capability with no living spec</td>
+          <td><span class="pill p-warn">⚠ exit 0</span> <code>validate --strict</code> reports <code>"valid": true</code>; <code>openspec archive</code> then fails <em>post-merge</em>, on the base branch, with <code>archive_spec_update_failed: "&lt;id&gt;: target spec does not exist; only ADDED requirements are allowed for new specs. MODIFIED and RENAMED operations require an existing spec."</code></td>
+          <td>Use <code>## ADDED Requirements</code> for a capability that has no <code>openspec/specs/&lt;id&gt;/spec.md</code> yet, or fix the capability directory name. <code>corp-lint.mjs</code> now hard-fails on this at authoring time, so <code>verify-docs.sh</code> catches it before the push</td>
+        </tr>
+        <tr>
           <td>Shape pasted into a spoke delta</td>
           <td><span class="pill p-fail">✗ exit 1</span> naming the owner as <code>storeId:specId</code></td>
           <td>Delete the paste; keep the two <code>openspec show … --store</code> fetch lines</td>
@@ -760,8 +771,8 @@ CIRCUIT BREAKER: same error surviving 3 attempts → STOP and ask a human.</code
 </section>
 
 <footer>
-  Read from the kit itself at edition <code>2026-08-26.5</code> — the <code>en/</code> tree of <code>github.com/fresh-fx59/corp-sdd</code>, synced from <code>corp-sdd-starter/</code>: <code>docs/SETUP.md</code>, <code>docs/OPERATIONS.md</code>, <code>docs/FLOW.md</code>, <code>commands/corp-spec.md</code>, <code>templates/store-contract.md</code>, <code>scripts/tools/corp-lint.mjs</code>, <code>scripts/tools/check-contract-split-brain.mjs</code>, <code>scripts/tools/check-openspec-root.sh</code>, <code>scripts/tools/verify-docs.sh</code>, <code>skills/corp-drill-down/SKILL.md</code>. The <code>ru/</code> tree is the same kit translated.<br>
-  Kit edition <code>2026-08-26.5</code> · root-walk behaviour verified against OpenSpec 1.7.0 and re-confirmed on 1.10.0; the two fetch routes and the missing-<code>## Why</code> failure were measured on 1.10.0 on 2026-08-26 against a registered store with two spokes.
+  Read from the kit itself at edition <code>2026-08-26.6</code> — the <code>en/</code> tree of <code>github.com/fresh-fx59/corp-sdd</code>, synced from <code>corp-sdd-starter/</code>: <code>docs/SETUP.md</code>, <code>docs/OPERATIONS.md</code>, <code>docs/FLOW.md</code>, <code>commands/corp-spec.md</code>, <code>templates/store-contract.md</code>, <code>scripts/tools/corp-lint.mjs</code>, <code>scripts/tools/check-contract-split-brain.mjs</code>, <code>scripts/tools/check-openspec-root.sh</code>, <code>scripts/tools/verify-docs.sh</code>, <code>skills/corp-drill-down/SKILL.md</code>. The <code>ru/</code> tree is the same kit translated.<br>
+  Kit edition <code>2026-08-26.6</code> · root-walk behaviour verified against OpenSpec 1.7.0 and re-confirmed on 1.10.0; the two fetch routes and the missing-<code>## Why</code> failure were measured on 1.10.0 on 2026-08-26 against a registered store with two spokes.
 </footer>
 </div>
 

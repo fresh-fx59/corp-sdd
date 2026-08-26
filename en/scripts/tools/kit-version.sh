@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# corp-version: 2026-08-26.5
+# corp-version: 2026-08-26.6
 # kit-version.sh — identify which Corp SDD kit edition a command, skill or tool came from.
 # Every shipped command, skill and tool carries a `corp-version:` stamp; VERSION holds the
 # edition; MANIFEST.sha256 pins the exact bytes of each stamped file for that edition.

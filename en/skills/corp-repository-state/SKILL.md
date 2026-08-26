@@ -1,7 +1,7 @@
 ---
 name: corp-repository-state
 description: Use when starting or resuming Corp SDD work, changing base or feature branches, working in a project submodule, or encountering dirty, detached, stale, unpushed, behind, or diverged Git state.
-corp-version: 2026-08-26.5
+corp-version: 2026-08-26.6
 ---
 
 # Corp repository state
