@@ -1,6 +1,6 @@
 ---
 description: Turn an approved delta spec's scenarios into a black-box integration test plan QA can run on the dev stand (tester flow)
-corp-version: 2026-08-26.6
+corp-version: 2026-08-26.7
 ---
 Build the black-box integration test plan for change {{args}}.
 

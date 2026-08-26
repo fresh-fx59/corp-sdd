@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// corp-version: 2026-08-26.6
+// corp-version: 2026-08-26.7
 // corp-lint.mjs — deterministic disposer for agent-written docs. Zero dependencies.
 // Scope: openspec/, docs/, and the agent home of whatever CLI this port runs
 // (never lints build output or source code docs). The agent home is NEVER hard-coded:
@@ -179,7 +179,10 @@ for (const p of mdFiles) {
     const line = lines[i].trimEnd(); // trailing whitespace must not disable the check
     const m = line.match(/^<!--\s*embed:\s*(\S+?)#L(\d+)-L(\d+)\s*-->$/);
     if (!m) {
-      if (/<!--.*embed:/.test(line)) warn(r, `line ${i + 1} looks like an embed directive but does not parse`,
+      // A directive is a whole line. Inside an inline-code span it is prose ABOUT the syntax —
+      // documentation that explains the directive must not be reported as a broken one.
+      const bare = line.replace(/`[^`]*`/g, '');
+      if (/<!--.*embed:/.test(bare)) warn(r, `line ${i + 1} looks like an embed directive but does not parse`,
         'expected exactly: <!-- embed: relative/path#Lstart-Lend -->');
       continue;
     }
@@ -215,6 +218,29 @@ for (const p of mdFiles.filter(p => /(^|\/)openspec\/changes\/[^/]+\/proposal\.m
   if (!/^##\s+What\s+Changes\s*$/im.test(body))
     err(r, 'no "## What Changes" section',
         'add a literal `## What Changes` heading — the schema expects it beside `## Why`');
+}
+
+// ---- 4c. port-facts.md must hold probed facts, not the template's placeholders.
+// It is the file the whole install is supposed to be derived from — the agent home, the project
+// instruction filename, the pinned CLI invocation, the store and repository ids — and until now
+// nothing ever read it, so an install could run to completion on a file that still said "...".
+{
+  const pf = join(ROOT, 'port-facts.md');
+  if (existsSync(pf)) {
+    const r = relative(ROOT, pf).split(sep).join('/');
+    const txt = readFileSync(pf, 'utf8');
+    const rows = txt.split('\n').filter(l => /^\|\s*P\d+\s*\|/.test(l));
+    const unfilled = rows.filter(l => /\|\s*\.\.\.\s*\|/.test(l));
+    if (rows.length === 0)
+      err(r, 'no probed facts (no P-rows at all)',
+          'fill the table from the real port: this file is where the agent home, the instruction filename, the pinned CLI invocation and the ids are recorded — see docs/SETUP.md stage 2');
+    else if (unfilled.length)
+      err(r, `${unfilled.length} of ${rows.length} probed fact(s) still hold the template placeholder "..."`,
+          'run the probe and paste its verbatim output — an unfilled row means nobody proved that fact on this port');
+    if (/probed YYYY-MM-DD|<port name \+ version>/.test(txt))
+      err(r, 'header still holds the template placeholders',
+          'record the real port name, version and probe date in the title line');
+  }
 }
 
 // ---- 5. tasks.md state header + checkbox shape (nesting allowed)

@@ -1,7 +1,7 @@
 ---
 name: corp-debugging
 description: Systematic root-cause debugging. Use when ANY test fails unexpectedly or behavior contradicts the spec — BEFORE attempting fixes.
-corp-version: 2026-08-26.6
+corp-version: 2026-08-26.7
 ---
 ## The law
 No fix before diagnosis. A fix without a named root cause is a guess; guesses that pass are the

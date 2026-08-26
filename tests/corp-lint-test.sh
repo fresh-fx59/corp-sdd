@@ -235,6 +235,50 @@ else
 fi
 rm -rf "$M"
 
+echo "L14 an unfilled port-facts.md is caught; a probed one passes"
+F="$(mktemp -d)"; mkdir -p "$F/openspec" "$F/docs"
+cat > "$F/port-facts.md" <<'EOF'
+# Port facts — <port name + version> (probed YYYY-MM-DD)
+
+| # | Question | Probe ran | Evidence (verbatim output) | Conclusion |
+|---|---|---|---|---|
+| P1 | agent home + project instruction file | ... | ... | e.g. `.acme/` |
+EOF
+out=$(node "$LINT" "$F" 2>&1); rc=$?
+if [ "$rc" -eq 1 ] && grep -q 'template placeholder' <<<"$out"; then
+  ok "an install running on the untouched template is refused"
+else
+  no "port-facts.md is still unchecked (rc=$rc)" "$out"
+fi
+cat > "$F/port-facts.md" <<'EOF'
+# Port facts — acme-cli 2.4 (probed 2026-08-26)
+
+| # | Question | Probe ran | Evidence (verbatim output) | Conclusion |
+|---|---|---|---|---|
+| P1 | agent home + project instruction file | ls -a | .acme/ ACME.md | `.acme/` + `ACME.md` |
+EOF
+out=$(node "$LINT" "$F" 2>&1); rc=$?
+if [ "$rc" -eq 0 ]; then ok "a probed port-facts.md passes"; else no "a filled port-facts.md was rejected (rc=$rc)" "$out"; fi
+rm -rf "$F"
+
+echo "L15 documented embed syntax inside inline code is not a broken directive"
+E="$(mktemp -d)"; mkdir -p "$E/openspec" "$E/docs"
+printf 'Use `<!-- embed: path#Lx-Ly -->` to pull a shape from source.\n' > "$E/docs/guide.md"
+out=$(node "$LINT" "$E" 2>&1)
+if ! grep -q 'looks like an embed directive' <<<"$out"; then
+  ok "prose about the directive is not reported as one"
+else
+  no "documented syntax still warns" "$out"
+fi
+printf 'text\n<!-- embed: nope -->\n' > "$E/docs/guide.md"
+out=$(node "$LINT" "$E" 2>&1)
+if grep -q 'looks like an embed directive' <<<"$out"; then
+  ok "a genuinely broken directive still warns"
+else
+  no "the embed check stopped working" "$out"
+fi
+rm -rf "$E"
+
 echo
 echo "PASS=$PASS FAIL=$FAIL"
 [ "$FAIL" -eq 0 ]

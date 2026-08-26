@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# corp-version: 2026-08-26.6
+# corp-version: 2026-08-26.7
 # Reconcile a normalized project repository inventory into system-store/submodules/.
 # Adds and validates only. Removed bindings are reported and never deleted automatically.
 set -uo pipefail

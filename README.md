@@ -61,7 +61,7 @@ Background: [Enterprise spec-driven development with AI agents](https://aiengine
 ## Versioning
 
 The kit is versioned as a whole, by **edition**, not per asset. `<kit>/VERSION` holds the
-edition (for example `2026-08-26.6`); every shipped command, skill and tool carries a matching
+edition (for example `2026-08-26.7`); every shipped command, skill and tool carries a matching
 `corp-version:` stamp in its own header; `<kit>/MANIFEST.sha256` pins the exact bytes of each
 stamped file for that edition. An installed copy can therefore be identified at any path,
 without this repository.

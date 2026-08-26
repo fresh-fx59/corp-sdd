@@ -69,6 +69,11 @@ Two boundaries are worth stating because they used to be blurred:
   `archive_spec_update_failed: "<id>: target spec does not exist; only ADDED requirements are
   allowed for new specs. MODIFIED and RENAMED operations require an existing spec."`), the
   SHALL/MUST advisory, and the observable-surface warning.
+- **`port-facts.md` is read, not just written.** The store's `port-facts.md` records the agent
+  home, the project instruction filename, the pinned CLI invocation and the ids — the whole
+  install derives from it. `corp-lint.mjs` hard-fails on a copy that still holds the template
+  placeholder `...` in a `P`-row, or the template header `<port name + version> (probed
+  YYYY-MM-DD)`, so an unfilled port probe cannot reach a green `verify-docs.sh`.
 - **The agent home is discovered, never named.** `corp-lint.mjs` resolves it from
   `CORP_AGENT_DIR`, else `git config corp.agentDir`, else the single root dot-directory that
   contains a `skills/` subdirectory — so no port's directory name is hard-coded anywhere.

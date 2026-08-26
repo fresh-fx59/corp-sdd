@@ -44,6 +44,10 @@ test "$CORP_SYSTEM_STORE_ROOT" != "$CORP_SDD_ROOT"
 These variables replace machine-specific paths. Keep `system-store` beside
 `corp-sdd`, never inside it.
 
+`index-all.sh` additionally needs **Universal Ctags** (`ctags --version` must print
+`Universal Ctags`; BSD ctags is rejected by brand on purpose, because `sym:` search dies
+silently on it) and the Zoekt indexer. Both are optional: skip code search and the rest of
+the kit works.
 ## 1. Discover repositories for `<project-id>`
 
 This is the first setup action after resolving roots. Enumerate available MCP
@@ -259,8 +263,10 @@ For each path reported by `.gitmodules`:
    have is a dead instruction;
 5. copy `config/lefthook.yml.example` to `lefthook.yml`, install lefthook through
    the approved internal channel, then run `lefthook install`;
-6. add a stable repository id at `openspec/repo.txt`, generate its index, and run
-   the root-derived `verify-docs.sh`;
+6. add a stable repository id at `openspec/repo.txt`, create `openspec/adr/` (with a
+   `.gitkeep`, so it survives a clone — `corp-archive` writes
+   `openspec/adr/NNNN-<slug>.md` and will not create the directory for you), generate its
+   index, and run the root-derived `verify-docs.sh`;
 6a. copy `templates/testing-stack.md` to that repository's `docs/testing-stack.md` and
    fill it in with the team: the fast and slow tiers, the command that runs each, the
    wiring boundaries only the slow tier catches, and the debugging boundary order.

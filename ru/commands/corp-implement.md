@@ -1,6 +1,6 @@
 ---
 description: Реализовать текущее изменение по задачам с дисциплиной TDD
-corp-version: 2026-08-26.6
+corp-version: 2026-08-26.7
 ---
 Реализуй изменение {{args}}. Следуй corp-tdd, corp-verification, corp-debugging и corp-drill-down.
 `{{args}}` — это `<change-id>`; `<openspec>` — вызов CLI OpenSpec, подставленный при установке.

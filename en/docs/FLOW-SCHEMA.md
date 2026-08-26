@@ -60,6 +60,9 @@ Story / request
   index check, `corp-lint.mjs`, and the contract-split check — the last one reading each store's
   living specs AND the deltas and `store-contract.md` of its active changes, so it also covers the
   cross-repo window before the contract is archived.
+- `corp-lint.mjs` also refuses an unfilled `port-facts.md`: a `P`-row still holding the template
+  placeholder `...`, or the template header `<port name + version> (probed YYYY-MM-DD)`, is an
+  error, because the whole install derives from that file.
 - Every asserting mode of `repository-state.sh` refuses a repository that does not own its own
   OpenSpec root (`✗ OpenSpec root is not this repository` · `↳ resolved root: <path>`); `inspect`
   only reports it. The branch-name guard runs at pre-commit as well as pre-push, because a

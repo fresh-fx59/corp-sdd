@@ -51,6 +51,11 @@ The package is `@fission-ai/openspec`. The bare name `openspec` on the public
 registry is an unrelated empty `0.0.0` placeholder and installs nothing usable
 (`docs/SETUP.md` §0).
 
+`index-all.sh` additionally needs two **optional** prerequisites: **Universal Ctags**
+(`ctags --version` must print `Universal Ctags` — BSD ctags is rejected by brand on purpose,
+because `sym:` search dies silently on it) and the **Zoekt** indexer. Skip code search and the
+rest of the kit works; neither miss stops the migration.
+
 ### 0.2 Name both editions
 
 ```bash
@@ -64,7 +69,7 @@ test -f "$OLD_ROOT/VERSION" && echo "UNEXPECTED: old checkout has a VERSION" || 
 
 Expected:
 - `cat VERSION` prints the new edition (at the time this runbook was written:
-  `2026-08-26.6`). Use whatever the file says; do not hardcode it below.
+  `2026-08-26.7`). Use whatever the file says; do not hardcode it below.
 - `kit-version.sh verify` prints `✓ 24 file(s) match <edition>` and exits 0.
   **A kit that fails its own manifest is not a release — re-unpack it and stop.**
 - `rev-parse HEAD` prints `71de101…`.
@@ -236,6 +241,11 @@ install -m 0644 "$CORP_SDD_ROOT/scripts/tools/check-contract-split-brain.mjs" "$
 install -m 0644 "$CORP_SDD_ROOT/templates/port-facts.md"                     "$CORP_SYSTEM_STORE_ROOT/port-facts.md"
 install -m 0644 "$CORP_SDD_ROOT/templates/conventions-branching.md"          "$CORP_SYSTEM_STORE_ROOT/conventions/branching.md"
 ```
+
+Note: `port-facts.md` is installed as an **unfilled template** and must be FILLED IN — stage 5.1
+probes the real port — **before the stage-12 final verification**. `corp-lint.mjs` now ERRORS on a
+`port-facts.md` whose P-rows still hold the placeholder `...`, or whose header still says
+`<port name + version> (probed YYYY-MM-DD)`, so an untouched copy fails `verify-docs.sh`.
 
 Note: `sync-repos.sh` from the old kit is **not** in this list and must not be copied.
 It is replaced, not upgraded (stage 2).
@@ -719,7 +729,9 @@ Per-repository OpenSpec and hooks (`docs/SETUP.md` §5), for each submodule:
    submodule, not the store. Expected: the printed root equals `$repo`. This matters
    here more than in a fresh install: OpenSpec walks up past `.git`, and the new layout
    puts every repository *inside* a store that has its own `openspec/`;
-3. add a stable repository id at `openspec/repo.txt` (the stage-3 repository name);
+3. add a stable repository id at `openspec/repo.txt` (the stage-3 repository name), and create
+   `openspec/adr/` with a `.gitkeep` so it survives a clone — `corp-archive` writes
+   `openspec/adr/NNNN-<slug>.md` and will not create the directory for you;
 4. copy `config/lefthook.yml.example` to `lefthook.yml`, install lefthook through the
    approved internal channel, then run `lefthook install` in that repository;
 5. declare the store in `openspec/config.yaml`:
@@ -1146,6 +1158,9 @@ settings, credential and scratch files. Record every commit SHA in the handover.
 - [ ] `corp.agentDir` set in every repository and echoed back;
 - [ ] the `<openspec>` token resolved, all six CLI calls proven and recorded in
       `port-facts.md`, `rg` finds neither `<openspec>` nor `opsx`;
+- [ ] `port-facts.md` is filled in: no P-row still holds `...`, the header names the real port,
+      version and probe date, and `corp-lint.mjs` is green on the store;
+- [ ] every repository has an `openspec/adr/` directory with a `.gitkeep`;
 - [ ] all six skills installed, including the new `corp-repository-state`;
 - [ ] `docs/testing-stack.md` filled in and placeholder-free in every repository, with
       one fast and one slow command output pasted per repository;
@@ -1247,5 +1262,5 @@ be resolved on the target machine before or during the run — do not invent the
    it TEMPLATE. Adapt and smoke-test it; this runbook does not migrate CI.
 10. **The kit edition moves fast.** During the writing of this runbook `VERSION` read
     `2026-08-25.13`, then `2026-08-25.14` minutes later; it was last re-checked against
-    `2026-08-26.6`. Always read `VERSION` on the kit you unpack rather than trusting any
+    `2026-08-26.7`. Always read `VERSION` on the kit you unpack rather than trusting any
     edition string quoted here.

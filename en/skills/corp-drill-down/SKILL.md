@@ -1,7 +1,7 @@
 ---
 name: corp-drill-down
 description: How to gather system knowledge — catalog to repo to live code. Use whenever work needs facts about ANY capability, module, or contract.
-corp-version: 2026-08-26.6
+corp-version: 2026-08-26.7
 ---
 ## Trust order (absolute)
 live code > repo living spec > repo index > central catalog > wiki. Each level may only ROUTE you
@@ -16,7 +16,7 @@ to the level above it; only code and living specs may be QUOTED as fact.
 3. The living spec, then the ACTUAL code it points to (registered Git submodule; run
    `sync-submodules.sh` if it is stale — the lint warns). For contract facts
    (field names, endpoint/event shapes):
-   read the source and EMBED it (<!-- embed: path#Lx-Ly -->) — never transcribe by hand, never
+   read the source and EMBED it (`<!-- embed: path#Lx-Ly -->`) — never transcribe by hand, never
    quote a spec's prose for a shape when the source is one hop away.
 
 ## Recording (pointers, not payloads)

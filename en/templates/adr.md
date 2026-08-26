@@ -1,9 +1,9 @@
-# ADR-0007: Refunds processed asynchronously via outbox
+# ADR-NNNN: <decision in one line, present tense>
 
-- Status: accepted (2026-07-18) · Change: <change-id> · Supersedes: — · Superseded by: —
+- Status: <proposed|accepted|superseded> (YYYY-MM-DD) · Change: <change-id> · Supersedes: <ADR-NNNN or —> · Superseded by: <ADR-NNNN or —>
 
 ## Context
-<2-6 lines: the forces — what constraint/discovery made a decision necessary>
+<2-6 lines: the forces — what constraint or discovery made a decision necessary>
 ## Decision
 <1-3 lines: what was decided>
 ## Consequences

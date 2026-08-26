@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# corp-version: 2026-08-26.6
+# corp-version: 2026-08-26.7
 # repository-state.sh — inspect and enforce the Git state expected by Corp SDD.
 # Never resets, cleans, rebases, force-checks out, mutates stashes, or deletes work.
 set -uo pipefail

@@ -1,6 +1,6 @@
 ---
 description: Generate design + tasks for an approved change, against TODAY's code (dev flow)
-corp-version: 2026-08-26.6
+corp-version: 2026-08-26.7
 ---
 Plan change {{args}}. Follow skills corp-drill-down (all system facts) and corp-verification.
 `{{args}}` is the `<change-id>`; `<openspec>` is the OpenSpec CLI invocation setup resolved.
