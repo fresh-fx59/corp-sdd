@@ -1,0 +1,760 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>The Common Contract — corp-sdd</title>
+<meta name="description" content="How corp-sdd keeps a cross-repo contract from forking: one owner, a linked store spec, and the two fetch routes a spoke needs.">
+</head>
+<body>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chivo:ital,wght@0,400;0,600;0,800;1,400&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+  :root{
+    --ground:#eef1f4;
+    --panel:#ffffff;
+    --panel-2:#e4e9ee;
+    --ink:#141a20;
+    --ink-2:#4a5560;
+    --ink-3:#78838e;
+    --rule:#c9d2da;
+    --accent:#2b45c4;        /* blueprint indigo */
+    --accent-soft:#dfe4fb;
+    --fail:#a8271c;
+    --fail-soft:#f6e0dd;
+    --pass:#0f6350;
+    --pass-soft:#d9ece6;
+    --warn:#8a5a06;
+    --warn-soft:#f5e7cc;
+    --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+    --display:"Chivo","Helvetica Neue",Arial,sans-serif;
+    --body:"Source Serif 4",Georgia,"Times New Roman",serif;
+  }
+  @media (prefers-color-scheme:dark){
+    :root:not([data-theme="light"]){
+      --ground:#0e1216;
+      --panel:#161c22;
+      --panel-2:#1e262e;
+      --ink:#e8edf2;
+      --ink-2:#a8b3bd;
+      --ink-3:#7b8792;
+      --rule:#2c363f;
+      --accent:#8fa2ff;
+      --accent-soft:#1d2444;
+      --fail:#f08a7e;
+      --fail-soft:#341c19;
+      --pass:#63c9ac;
+      --pass-soft:#122b25;
+      --warn:#e0b25f;
+      --warn-soft:#2e2313;
+    }
+  }
+  :root[data-theme="dark"]{
+    --ground:#0e1216;
+    --panel:#161c22;
+    --panel-2:#1e262e;
+    --ink:#e8edf2;
+    --ink-2:#a8b3bd;
+    --ink-3:#7b8792;
+    --rule:#2c363f;
+    --accent:#8fa2ff;
+    --accent-soft:#1d2444;
+    --fail:#f08a7e;
+    --fail-soft:#341c19;
+    --pass:#63c9ac;
+    --pass-soft:#122b25;
+    --warn:#e0b25f;
+    --warn-soft:#2e2313;
+  }
+
+  *{box-sizing:border-box}
+  body{
+    background:var(--ground);
+    color:var(--ink);
+    font-family:var(--body);
+    font-size:17px;
+    line-height:1.62;
+    margin:0;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:1120px;margin:0 auto;padding:0 24px 96px}
+  .col{max-width:70ch}
+
+  /* ---- masthead ---- */
+  header.mast{
+    border-bottom:1px solid var(--rule);
+    padding:56px 0 28px;
+    margin-bottom:44px;
+  }
+  .eyebrow{
+    font-family:var(--mono);
+    font-size:11.5px;
+    letter-spacing:.16em;
+    text-transform:uppercase;
+    color:var(--ink-3);
+    margin:0 0 18px;
+  }
+  h1{
+    font-family:var(--display);
+    font-weight:800;
+    font-size:clamp(34px,5.4vw,58px);
+    line-height:1.02;
+    letter-spacing:-.02em;
+    margin:0 0 18px;
+    text-wrap:balance;
+  }
+  .standfirst{font-size:20px;color:var(--ink-2);margin:0;max-width:62ch}
+  .standfirst b{color:var(--ink);font-weight:600}
+
+  /* ---- sections ---- */
+  section{margin:0 0 64px;scroll-margin-top:20px}
+  h2{
+    font-family:var(--display);
+    font-weight:700;
+    font-size:clamp(23px,2.6vw,30px);
+    letter-spacing:-.012em;
+    line-height:1.15;
+    margin:0 0 6px;
+    text-wrap:balance;
+  }
+  h2 .num{
+    font-family:var(--mono);
+    font-size:13px;
+    font-weight:500;
+    color:var(--accent);
+    letter-spacing:.08em;
+    display:block;
+    margin-bottom:8px;
+  }
+  h3{
+    font-family:var(--display);
+    font-weight:600;
+    font-size:18px;
+    letter-spacing:-.005em;
+    margin:34px 0 8px;
+  }
+  p{margin:0 0 16px}
+  .lede{color:var(--ink-2);font-size:18.5px;margin-bottom:26px;max-width:66ch}
+  a{color:var(--accent);text-decoration-thickness:1px;text-underline-offset:2px}
+  a:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+  code{
+    font-family:var(--mono);
+    font-size:.86em;
+    background:var(--panel-2);
+    border-radius:3px;
+    padding:.1em .34em;
+    word-break:break-word;
+  }
+  pre{
+    font-family:var(--mono);
+    font-size:13px;
+    line-height:1.62;
+    background:var(--panel);
+    border:1px solid var(--rule);
+    border-left:3px solid var(--accent);
+    padding:16px 18px;
+    overflow-x:auto;
+    margin:0 0 20px;
+  }
+  pre code{background:none;padding:0;font-size:13px}
+  .cm{color:var(--ink-3)}
+  ul,ol{margin:0 0 18px;padding-left:1.25em}
+  li{margin-bottom:7px}
+  strong{font-weight:600}
+
+  /* ---- rule / callout ---- */
+  .rule{
+    border:1px solid var(--rule);
+    border-top:3px solid var(--accent);
+    background:var(--panel);
+    padding:20px 22px;
+    margin:0 0 26px;
+  }
+  .rule .k{
+    font-family:var(--mono);
+    font-size:11px;
+    letter-spacing:.14em;
+    text-transform:uppercase;
+    color:var(--accent);
+    display:block;
+    margin-bottom:8px;
+  }
+  .rule p:last-child{margin-bottom:0}
+  .rule.bad{border-top-color:var(--fail)}
+  .rule.bad .k{color:var(--fail)}
+
+  /* ---- diagram frame ---- */
+  figure{
+    margin:0 0 28px;
+    border:1px solid var(--rule);
+    background:var(--panel);
+    padding:22px 22px 14px;
+  }
+  figure .scroll{overflow-x:auto}
+  figcaption{
+    font-family:var(--mono);
+    font-size:11.5px;
+    line-height:1.55;
+    color:var(--ink-3);
+    padding-top:14px;
+    margin-top:14px;
+    border-top:1px solid var(--rule);
+  }
+  svg{display:block;max-width:100%;height:auto}
+  .svg-fill-panel{fill:var(--panel)}
+  .svg-fill-panel2{fill:var(--panel-2)}
+  .svg-stroke{stroke:var(--rule)}
+  .svg-ink{fill:var(--ink)}
+  .svg-ink2{fill:var(--ink-2)}
+  .svg-ink3{fill:var(--ink-3)}
+  .svg-accent{fill:var(--accent)}
+  .svg-accent-stroke{stroke:var(--accent)}
+  .svg-accent-soft{fill:var(--accent-soft)}
+  .svg-fail{fill:var(--fail)}
+  .svg-fail-stroke{stroke:var(--fail)}
+  .lbl{font-family:var(--mono);font-size:11px}
+  .lbl-b{font-family:var(--display);font-size:12.5px;font-weight:600}
+
+  /* ---- tables ---- */
+  .tw{overflow-x:auto;margin:0 0 26px;border:1px solid var(--rule);background:var(--panel)}
+  table{border-collapse:collapse;width:100%;min-width:600px;font-size:15px}
+  th,td{text-align:left;padding:11px 14px;border-bottom:1px solid var(--rule);vertical-align:top}
+  th{
+    font-family:var(--mono);
+    font-size:11px;
+    letter-spacing:.1em;
+    text-transform:uppercase;
+    color:var(--ink-3);
+    background:var(--panel-2);
+    font-weight:500;
+  }
+  tr:last-child td{border-bottom:none}
+  td code{font-size:12.5px}
+
+  /* ---- pills ---- */
+  .pill{
+    display:inline-block;
+    font-family:var(--mono);
+    font-size:10.5px;
+    letter-spacing:.09em;
+    text-transform:uppercase;
+    padding:3px 7px;
+    border-radius:2px;
+    white-space:nowrap;
+  }
+  .p-fail{background:var(--fail-soft);color:var(--fail)}
+  .p-pass{background:var(--pass-soft);color:var(--pass)}
+  .p-warn{background:var(--warn-soft);color:var(--warn)}
+
+  /* ---- ordered step list ---- */
+  .steps{list-style:none;padding:0;margin:0;display:grid;gap:0}
+  .steps > li{
+    display:grid;
+    grid-template-columns:52px 1fr;
+    gap:20px;
+    padding:22px 0;
+    border-top:1px solid var(--rule);
+    margin:0;
+  }
+  .steps > li:last-child{border-bottom:1px solid var(--rule)}
+  .steps .sn{
+    font-family:var(--mono);
+    font-size:12px;
+    font-weight:600;
+    color:var(--accent);
+    letter-spacing:.06em;
+    padding-top:4px;
+  }
+  .steps h3{margin-top:0}
+  .steps p:last-child,.steps pre:last-child,.steps ul:last-child{margin-bottom:0}
+
+  /* ---- two-up ---- */
+  .duo{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin:0 0 26px}
+  @media (max-width:760px){.duo{grid-template-columns:1fr}}
+  .card{border:1px solid var(--rule);background:var(--panel);padding:18px 20px}
+  .card h3{margin-top:0}
+  .card p:last-child{margin-bottom:0}
+  .card.good{border-left:3px solid var(--pass)}
+  .card.bad{border-left:3px solid var(--fail)}
+
+  footer{border-top:1px solid var(--rule);padding-top:22px;color:var(--ink-3);font-family:var(--mono);font-size:12px;line-height:1.7}
+</style>
+
+<div class="wrap">
+<header class="mast">
+  <p class="eyebrow">github.com/fresh-fx59/corp-sdd · kit edition 2026-08-26.2</p>
+  <h1>The Common Contract</h1>
+  <p class="standfirst">One shape, one owner, one file. Every repository that touches it <b>links</b> that file — and a lint fails the commit if anyone pastes the shape instead. This is how corp-sdd keeps a cross-repo contract from forking into five slightly different truths.</p>
+</header>
+
+<section class="col">
+  <h2><span class="num">01 / the problem</span>Why a contract needs an owner</h2>
+  <p class="lede">A product spread over five repositories has facts that live between them: an event payload, an endpoint shape, a table the consumer reads. Nobody owns "between".</p>
+  <p>Write that shape into each repository's spec and you get five copies. They agree on the day they are written. Then the producer adds a field, one consumer's copy is updated, and the other four become confidently wrong documentation — the worst kind, because agents and people both read it as fact.</p>
+  <p>corp-sdd calls that failure <strong>split brain</strong>, and treats it as the thing the whole design exists to prevent. The rule it enforces:</p>
+  <div class="rule">
+    <span class="k">one spec-truth</span>
+    <p>A cross-repo contract fact lives in exactly <strong>one</strong> place — the system store. A spoke repository <strong>links</strong> the store contract. It never restates the shape.</p>
+  </div>
+  <p>"Never restates" is not a convention in a README. It is a check that exits non-zero.</p>
+</section>
+
+<section>
+  <h2 class="col"><span class="num">02 / topology</span>Hub, spokes, and the shape of the disk</h2>
+  <p class="lede col">Two kinds of Git repository, and they are never nested. The hub is the <strong>system store</strong>: an independent repository holding contracts, ADRs, conventions, and the project's repositories as submodules. The spokes are the code repositories themselves.</p>
+
+  <figure>
+    <div class="scroll">
+      <svg viewBox="0 0 900 420" role="img" aria-labelledby="topo-t">
+        <title id="topo-t">The system store holds contracts and mounts each code repository as a submodule; each spoke keeps its own OpenSpec root and links back to the store contract by id.</title>
+
+        <!-- hub -->
+        <rect x="20" y="20" width="330" height="252" class="svg-fill-panel2 svg-stroke" stroke-width="1"/>
+        <rect x="20" y="20" width="330" height="4" class="svg-accent" stroke="none"/>
+        <text x="38" y="52" class="lbl-b svg-ink">system-store/</text>
+        <text x="38" y="70" class="lbl svg-ink3">independent git repository · the hub</text>
+
+        <rect x="38" y="86" width="294" height="30" class="svg-accent-soft svg-accent-stroke" stroke-width="1"/>
+        <text x="50" y="106" class="lbl svg-ink">openspec/specs/&lt;contract-id&gt;/spec.md</text>
+
+        <rect x="38" y="124" width="294" height="26" class="svg-fill-panel svg-stroke" stroke-width="1"/>
+        <text x="50" y="141" class="lbl svg-ink2">openspec/adr/ · conventions/ · catalog.md</text>
+
+        <rect x="38" y="158" width="294" height="26" class="svg-fill-panel svg-stroke" stroke-width="1"/>
+        <text x="50" y="175" class="lbl svg-ink2">project-repositories.json · .gitmodules</text>
+
+        <rect x="38" y="192" width="294" height="62" class="svg-fill-panel svg-stroke" stroke-width="1"/>
+        <text x="50" y="211" class="lbl svg-ink2">submodules/service-a  →  spoke A</text>
+        <text x="50" y="229" class="lbl svg-ink2">submodules/service-b  →  spoke B</text>
+        <text x="50" y="247" class="lbl svg-ink3">(checkouts, pinned per base branch)</text>
+
+        <!-- spokes -->
+        <g>
+          <rect x="560" y="20" width="320" height="122" class="svg-fill-panel svg-stroke" stroke-width="1"/>
+          <text x="578" y="48" class="lbl-b svg-ink">service-a  (producer)</text>
+          <text x="578" y="70" class="lbl svg-ink2">openspec/  ← its OWN root</text>
+          <text x="578" y="90" class="lbl svg-ink2">openspec/config.yaml</text>
+          <text x="590" y="108" class="lbl svg-accent">references: [ acme-store ]</text>
+          <text x="578" y="128" class="lbl svg-ink3">tools/ · lefthook.yml</text>
+        </g>
+        <g>
+          <rect x="560" y="164" width="320" height="122" class="svg-fill-panel svg-stroke" stroke-width="1"/>
+          <text x="578" y="192" class="lbl-b svg-ink">service-b  (consumer)</text>
+          <text x="578" y="214" class="lbl svg-ink2">openspec/  ← its OWN root</text>
+          <text x="578" y="234" class="lbl svg-ink2">openspec/config.yaml</text>
+          <text x="590" y="252" class="lbl svg-accent">references: [ acme-store ]</text>
+          <text x="578" y="272" class="lbl svg-ink3">tools/ · lefthook.yml</text>
+        </g>
+
+        <!-- arrows -->
+        <defs>
+          <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+            <path d="M0,0 L10,5 L0,10 z" class="svg-accent"/>
+          </marker>
+        </defs>
+        <path d="M350 120 C 450 120, 460 81, 556 81" fill="none" class="svg-accent-stroke" stroke-width="1.5" marker-end="url(#ah)"/>
+        <path d="M350 140 C 450 140, 460 225, 556 225" fill="none" class="svg-accent-stroke" stroke-width="1.5" marker-end="url(#ah)"/>
+        <text x="392" y="103" class="lbl svg-accent">resolved by store id</text>
+
+        <path d="M556 122 C 470 150, 430 196, 336 214" fill="none" class="svg-stroke" stroke-width="1.2" stroke-dasharray="4 3"/>
+        <path d="M556 266 C 470 280, 430 246, 336 232" fill="none" class="svg-stroke" stroke-width="1.2" stroke-dasharray="4 3"/>
+        <text x="392" y="300" class="lbl svg-ink3">mounted as submodules (read path for code facts)</text>
+
+        <!-- registry -->
+        <rect x="20" y="318" width="860" height="80" class="svg-fill-panel svg-stroke" stroke-width="1"/>
+        <text x="38" y="344" class="lbl-b svg-ink">~/.local/share/openspec/stores/registry.yaml</text>
+        <text x="38" y="364" class="lbl svg-ink2">acme-store: local_path: /work/acme/system-store</text>
+        <text x="38" y="384" class="lbl svg-ink3">machine-local index — turns the store id in a spoke's config into a real path on this disk</text>
+      </svg>
+    </div>
+    <figcaption>The hub owns the contract file. Each spoke owns its own OpenSpec root and points at the hub by id, never by relative path — so the same spec resolves on every developer's machine and in CI.</figcaption>
+  </figure>
+
+  <div class="col">
+    <div class="rule bad">
+      <span class="k">the nesting trap</span>
+      <p>OpenSpec resolves its root by walking <strong>up</strong> from the current directory looking for an <code>openspec/</code> folder — and the walk does <strong>not</strong> stop at a <code>.git</code> boundary (verified on OpenSpec 1.7.0). A submodule that was never <code>openspec init</code>-ed therefore resolves to the <em>store's</em> root, and every spec the agent writes silently lands in the hub. <code>check-openspec-root.sh</code> exists only to refuse that.</p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2 class="col"><span class="num">03 / the store</span>How the OpenSpec store actually works</h2>
+  <p class="lede col">"Store" is OpenSpec's own mechanism for reading specs that live in another repository. Three moving parts, and each one has to be true or the link is dead.</p>
+
+  <ol class="steps col">
+    <li>
+      <span class="sn">A</span>
+      <div>
+        <h3>Register the path under a stable id</h3>
+        <p>The hub's absolute path is registered once per machine with the pinned CLI. This writes the machine-local registry.</p>
+<pre><code>&lt;openspec&gt; store register /work/acme/system-store --id acme-store --yes
+&lt;openspec&gt; store list      <span class="cm"># must print that id + exact path</span></code></pre>
+        <p><strong>Ids are a contract, not a label.</strong> Cross-repo links resolve by id, so two people installing the same project must produce the same string. The kit fixes the convention: <code>&lt;project-id&gt;-store</code> for the store, the repository name for each repo, both lower-case kebab-case, both recorded in <code>port-facts.md</code>.</p>
+      </div>
+    </li>
+    <li>
+      <span class="sn">B</span>
+      <div>
+        <h3>Declare the reference in every spoke</h3>
+        <p>In each onboarded repository's <code>openspec/config.yaml</code>:</p>
+<pre><code>references:
+  - acme-store
+
+<span class="cm"># better, where the CLI accepts the map form: a machine that has not registered</span>
+<span class="cm"># the store then gets a pasteable clone+register line instead of a bare failure</span>
+references:
+  - id: acme-store
+    remote: git@git.acme.internal:acme/system-store.git</code></pre>
+        <p>This block is what makes a spoke able to <em>link</em> instead of restate. Two things break without it, and both are silent:</p>
+        <ul>
+          <li>Neither fetch route resolves — the lines <code>corp-spec</code> writes into every cross-repo delta.</li>
+          <li><code>check-contract-split-brain.mjs</code> exits <span class="pill p-pass">0</span> without checking anything, because it scopes itself to repos that declare <code>references:</code>. A pasted contract shape then goes unnoticed.</li>
+        </ul>
+      </div>
+    </li>
+    <li>
+      <span class="sn">C</span>
+      <div>
+        <h3>Read the contract through the store, at read time — and there are TWO windows</h3>
+        <p>A spoke delta spec carries fetch lines, not a payload. It carries <strong>two</strong>, because the routes never overlap. The contract merges last, so for the entire cross-repo window the contract exists only inside its <em>change</em> folder; archiving it deletes that folder at the same moment the spec route starts working.</p>
+<pre><code>contract: payments-events-v2 in store acme-store (change add-payments-events-v2)
+
+while the contract change is open:
+  &lt;openspec&gt; show add-payments-events-v2 --type change --store acme-store --json --deltas-only
+
+after the contract change is archived:
+  &lt;openspec&gt; show payments-events-v2 --type spec --store acme-store
+
+which window am I in:
+  &lt;openspec&gt; list --specs --store acme-store   <span class="cm"># spec id absent → still open</span></code></pre>
+        <div class="rule bad">
+          <span class="k">measured, openspec 1.10.0 · 2026-08-26</span>
+          <p>Before the archive, the spec route is dead: <code>✖ Error: Spec 'payments-events-v2' not found at /…/acme-store/openspec/specs/payments-events-v2/spec.md</code>, exit 1. After the archive, the change route is dead: <code>Change "add-payments-events-v2" not found</code> — and the dated archive id does not resolve either.</p>
+          <p><code>--json</code> is <strong>mandatory</strong> on the change route. Without it the CLI prints <code>proposal.md</code> only, omits the delta silently, and still exits <span class="pill p-pass">0</span> — a worse trap than the dead link, because nothing fails.</p>
+          <p>Never use <code>&lt;openspec&gt; change show</code> or <code>&lt;openspec&gt; spec show</code> here: the noun-first forms have no <code>--store</code> flag at all and resolve against the spoke. <code>&lt;openspec&gt; context</code> prints only the spec recipe, so it cannot be trusted during the open window either.</p>
+        </div>
+        <p>Recording the contract <em>change</em> id beside the spec id is not optional: while the change is open, the spec id resolves nothing.</p>
+        <p><code>&lt;openspec&gt;</code> is one token the install resolves once — <code>npx @fission-ai/openspec@&lt;pinned&gt;</code> or an internal wrapper on PATH. The kit deliberately calls the <strong>CLI</strong>, never a generated slash command: slash commands differ between versions and profiles (OpenSpec 1.10's core profile ships <code>propose, explore, apply, update, sync, archive</code> and has no <code>new</code>, <code>continue</code> or <code>verify</code> at all), while the CLI calls are stable and machine-readable.</p>
+        <p>OpenSpec never inlines store content into the spoke. The spoke's own delta describes only what <em>this</em> repository does with the contract — which fields it emits, which it consumes, what it does on a missing one.</p>
+      </div>
+    </li>
+  </ol>
+
+  <div class="col">
+    <h3>What the contract file itself looks like</h3>
+    <p>The hub's contract is a template with one job: be the only place the shape appears. Note the <code>embed</code> pointer — the shape is pulled from the producer's real source through the submodule, never transcribed by hand.</p>
+  </div>
+<pre class="col"><code># Contract: payments-events-v2
+
+- Producer: service-a · Consumers: service-b, service-c · Status: active
+- Owning change history: ACME-4412
+
+## Shape
+&lt;!-- THE one place this contract's facts live. Spoke specs LINK here, never restate. --&gt;
+&lt;!-- embed: submodules/service-a/src/main/proto/payment.proto#L12-L48 --&gt;
+```
+&lt;embedded schema source&gt;
+```
+
+## Compatibility rules
+&lt;what a consumer may rely on; what the producer may change without notice&gt;</code></pre>
+  <p class="col">The trust order behind that <code>embed</code> is absolute and worth memorising: <strong>live code &gt; repo living spec &gt; repo index &gt; central catalog &gt; wiki.</strong> Lower levels may only <em>route</em> you upward; only code and living specs may be quoted as fact. For a field name or an event shape you read the source and embed it — you never quote a spec's prose for a shape when the source is one hop away.</p>
+</section>
+
+<section>
+  <h2 class="col"><span class="num">04 / enforcement</span>The split-brain lint, in detail</h2>
+  <p class="lede col">Where OpenSpec's <code>references:</code> guarantees the <em>tool</em> never inlines store content, nothing stops a human or an agent from pasting the payload into a spoke's delta by hand. <code>check-contract-split-brain.mjs</code> catches exactly that. Zero dependencies, so it runs on a restricted network.</p>
+
+  <figure>
+    <div class="scroll">
+      <svg viewBox="0 0 900 300" role="img" aria-labelledby="lint-t">
+        <title id="lint-t">The lint reads the spoke's references, resolves each store id through the registry, fingerprints the store's requirement headings and code blocks, then fails if any spoke spec repeats one.</title>
+        <defs>
+          <marker id="ah2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+            <path d="M0,0 L10,5 L0,10 z" class="svg-accent"/>
+          </marker>
+        </defs>
+
+        <rect x="14" y="40" width="176" height="88" class="svg-fill-panel2 svg-stroke" stroke-width="1"/>
+        <text x="28" y="66" class="lbl-b svg-ink">1 · scope</text>
+        <text x="28" y="88" class="lbl svg-ink2">read openspec/</text>
+        <text x="28" y="104" class="lbl svg-ink2">config.yaml</text>
+        <text x="28" y="120" class="lbl svg-ink3">no references → exit 0</text>
+
+        <rect x="222" y="40" width="176" height="88" class="svg-fill-panel2 svg-stroke" stroke-width="1"/>
+        <text x="236" y="66" class="lbl-b svg-ink">2 · resolve</text>
+        <text x="236" y="88" class="lbl svg-ink2">registry.yaml</text>
+        <text x="236" y="104" class="lbl svg-ink2">id → local_path</text>
+        <text x="236" y="120" class="lbl svg-ink3">unregistered → warn</text>
+
+        <rect x="430" y="40" width="196" height="88" class="svg-accent-soft svg-accent-stroke" stroke-width="1"/>
+        <text x="444" y="66" class="lbl-b svg-ink">3 · fingerprint</text>
+        <text x="444" y="88" class="lbl svg-ink2">every store spec.md:</text>
+        <text x="444" y="104" class="lbl svg-ink2">### Requirement: headings</text>
+        <text x="444" y="120" class="lbl svg-ink2">fenced blocks (≥2 lines)</text>
+
+        <rect x="658" y="40" width="228" height="88" class="svg-fill-panel2 svg-stroke" stroke-width="1"/>
+        <text x="672" y="66" class="lbl-b svg-ink">4 · scan this repo</text>
+        <text x="672" y="88" class="lbl svg-ink2">openspec/specs/**/spec.md</text>
+        <text x="672" y="104" class="lbl svg-ink2">openspec/changes/**/spec.md</text>
+        <text x="672" y="120" class="lbl svg-ink3">archive skipped by default</text>
+
+        <path d="M190 84 L218 84" fill="none" class="svg-accent-stroke" stroke-width="1.5" marker-end="url(#ah2)"/>
+        <path d="M398 84 L426 84" fill="none" class="svg-accent-stroke" stroke-width="1.5" marker-end="url(#ah2)"/>
+        <path d="M626 84 L654 84" fill="none" class="svg-accent-stroke" stroke-width="1.5" marker-end="url(#ah2)"/>
+
+        <path d="M772 128 L772 168" fill="none" class="svg-accent-stroke" stroke-width="1.5" marker-end="url(#ah2)"/>
+
+        <rect x="430" y="182" width="456" height="96" class="svg-fill-panel svg-fail-stroke" stroke-width="1.5"/>
+        <text x="446" y="208" class="lbl-b svg-fail">5 · match → ERROR, exit 1</text>
+        <text x="446" y="230" class="lbl svg-ink2">normalised heading equals a store requirement</text>
+        <text x="446" y="248" class="lbl svg-ink2">normalised fenced block equals a store shape</text>
+        <text x="446" y="268" class="lbl svg-ink3">message names the owner: storeId:specId + the show command to use instead</text>
+
+        <rect x="14" y="182" width="384" height="96" class="svg-fill-panel svg-stroke" stroke-width="1"/>
+        <text x="30" y="208" class="lbl-b svg-ink">normalisation</text>
+        <text x="30" y="230" class="lbl svg-ink2">headings: trim · lowercase · collapse spaces</text>
+        <text x="30" y="248" class="lbl svg-ink2">blocks: trim each line · drop blanks · rejoin</text>
+        <text x="30" y="268" class="lbl svg-ink3">so reformatting a paste does not hide it</text>
+      </svg>
+    </div>
+    <figcaption>Two error classes only: a restated <code>### Requirement:</code> heading, and a copied multi-line fenced block. One-line fences are ignored — too common to be evidence. A referenced store that is missing or unregistered is a warning, never a commit blocker, because that is an environment problem, not a spec problem.</figcaption>
+  </figure>
+
+  <div class="duo col">
+    <div class="card bad">
+      <h3>Fails the lint</h3>
+      <p>A spoke delta that pastes the payload so "the reader has it handy". The heading matches a store requirement; the fence matches a store shape. <span class="pill p-fail">✗ exit 1</span></p>
+    </div>
+    <div class="card good">
+      <h3>Passes the lint</h3>
+      <p>A spoke delta with its own requirement about <em>this repository's</em> behaviour, plus the two labelled <code>openspec show … --store</code> fetch lines. <span class="pill p-pass">✓ exit 0</span></p>
+    </div>
+  </div>
+
+  <div class="col">
+    <h3>Where the check runs</h3>
+    <p>The lint is not a separate ritual. It is one of three calls inside <code>verify-docs.sh</code>, the single disposer entry point — and that one script is wired to four triggers so no actor can bypass it.</p>
+  </div>
+<pre class="col"><code><span class="cm"># tools/verify-docs.sh — one code path</span>
+node tools/gen-index.mjs --check
+node tools/corp-lint.mjs
+node tools/check-contract-split-brain.mjs   <span class="cm"># no-op in repos with no references:</span></code></pre>
+  <div class="tw col" style="max-width:none">
+    <table>
+      <thead><tr><th>Trigger</th><th>Actor</th><th>Effect of a red result</th></tr></thead>
+      <tbody>
+        <tr><td>agent post-write self-check</td><td>the coding agent, after touching <code>openspec/</code> or <code>docs/</code></td><td>cannot report the work done; regenerates the content</td></tr>
+        <tr><td>lefthook pre-commit</td><td>the human</td><td>commit rejected</td></tr>
+        <tr><td>on demand</td><td>anyone</td><td>—</td></tr>
+        <tr><td>CI stage <code>docs-disposer</code></td><td>the pipeline</td><td>build fails; the backstop</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="col">
+    <div class="rule">
+      <span class="k">operating rule</span>
+      <p>Prompts advise; the disposer and CI enforce. <strong>Never fix a red check by weakening it.</strong> Caps reject, they never trim — the agent regenerates the content, and humans never hand-repair a generated file. If the same error survives three fix attempts, the agent stops and asks a human rather than looping.</p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2 class="col"><span class="num">05 / workflow</span>Contract first — the order that makes it hold</h2>
+  <p class="lede col">The lint stops a duplicated shape. Ticket and merge order stop something else: a consumer shipping against a contract that was never agreed. In corp-sdd a cross-repo story is one parent plus one child per repository, and the parent <em>is</em> the contract.</p>
+
+  <figure>
+    <div class="scroll">
+      <svg viewBox="0 0 900 268" role="img" aria-labelledby="ord-t">
+        <title id="ord-t">Approval runs contract first, then the spokes; implementation and merge run producer, then consumers, with the store contract merging last.</title>
+        <text x="14" y="34" class="lbl svg-ink3">APPROVAL ORDER</text>
+        <rect x="14" y="46" width="200" height="44" class="svg-accent-soft svg-accent-stroke" stroke-width="1.5"/>
+        <text x="30" y="74" class="lbl-b svg-ink">store contract (parent)</text>
+        <rect x="238" y="46" width="150" height="44" class="svg-fill-panel svg-stroke" stroke-width="1"/>
+        <text x="254" y="74" class="lbl svg-ink2">spoke deltas</text>
+        <path d="M214 68 L234 68" class="svg-accent-stroke" stroke-width="1.5" marker-end="url(#ah2)" fill="none"/>
+
+        <text x="14" y="134" class="lbl svg-ink3">IMPLEMENTATION + MERGE ORDER</text>
+        <rect x="14" y="146" width="170" height="44" class="svg-fill-panel svg-stroke" stroke-width="1"/>
+        <text x="30" y="174" class="lbl-b svg-ink">producer</text>
+        <rect x="208" y="146" width="170" height="44" class="svg-fill-panel svg-stroke" stroke-width="1"/>
+        <text x="224" y="174" class="lbl-b svg-ink">consumers</text>
+        <rect x="402" y="146" width="220" height="44" class="svg-accent-soft svg-accent-stroke" stroke-width="1.5"/>
+        <text x="418" y="174" class="lbl-b svg-ink">store contract merges LAST</text>
+        <path d="M184 168 L204 168" class="svg-accent-stroke" stroke-width="1.5" marker-end="url(#ah2)" fill="none"/>
+        <path d="M378 168 L398 168" class="svg-accent-stroke" stroke-width="1.5" marker-end="url(#ah2)" fill="none"/>
+
+        <rect x="646" y="46" width="240" height="144" class="svg-fill-panel svg-fail-stroke" stroke-width="1.5"/>
+        <text x="662" y="72" class="lbl-b svg-fail">a contract change</text>
+        <text x="662" y="94" class="lbl svg-ink2">stops all dependent work,</text>
+        <text x="662" y="112" class="lbl svg-ink2">in every repository,</text>
+        <text x="662" y="130" class="lbl svg-ink2">until the parent is re-approved.</text>
+        <text x="662" y="162" class="lbl svg-ink3">every child is marked</text>
+        <text x="662" y="178" class="lbl svg-ink3">blocked by the parent</text>
+
+        <text x="14" y="234" class="lbl svg-ink3">Approval flows down from the contract. Delivery flows up to it — so the contract is only frozen once every side of it is real code.</text>
+      </svg>
+    </div>
+    <figcaption>Approval: contract first. Delivery: producer → consumers → contract. The two orders point in opposite directions on purpose.</figcaption>
+  </figure>
+
+  <div class="col">
+    <h3>What <code>corp-spec</code> does with all this</h3>
+    <p>The analyst-facing command decides the shape before creating anything, and refuses to fan out for the wrong reason:</p>
+    <ul>
+      <li><strong>Interview once</strong>, at story level — even for five repositories. The requirements are shared; asking per repo asks the same question five times and invites five different answers.</li>
+      <li><strong>Count the repos.</strong> One repo → single-repo path. More than one → is there a genuine shared contract, a shape or protocol crossing the boundary? If not, it says <em>"not a cross-repo change; this is N independent stories"</em> and stops.</li>
+      <li><strong>Contract first.</strong> In the store: prepare base, branch <code>feature/&lt;parent-ticket&gt;</code>, create the contract change from <code>store-contract.md</code>, verify, push, PR, post the link on the parent story.</li>
+      <li><strong>Then each repo, one at a time.</strong> Its own delta <em>links</em> the contract by store id, spec id <em>and contract change id</em>, and includes both fetch lines — the change-scoped one for the open window, the spec-scoped one for after the merge. Verified facts go to <code>research.md</code> as pointers — <code>path#Lx-Ly</code> plus a one-line finding, never pasted payloads, which rot and bloat context.</li>
+      <li><strong>Where you stand decides where the files land.</strong> Every path is resolved by <code>git rev-parse --show-toplevel</code>, and a registered submodule is its own Git root — so <code>cd</code> into the submodule <em>first</em>, then resolve <code>REPO_ROOT</code>, and assert it is not <code>STORE_ROOT</code>. If they are equal you are still in the store and every artifact would land in the wrong repository.</li>
+      <li><strong>Normative versus discovered.</strong> Facts this change <em>defines</em> — a new endpoint, a new field, a new topic, the error contract — belong in the delta spec's requirement text and scenarios, where they are reviewed and archived. Facts the change only <em>discovers</em> about the system as it already is go to <code>research.md</code> as pointers.</li>
+      <li><strong>Two green gates per artifact:</strong> <code>verify-docs.sh</code>, then <code>&lt;openspec&gt; validate &lt;change-id&gt; --type change --strict --json</code> reporting <code>"valid": true</code>.</li>
+      <li><strong>Gates recorded on every child:</strong> approval order, implementation order, merge order, and the rule that a contract change stops all repos.</li>
+    </ul>
+    <p>If the split-brain lint fires at step (c) of that per-repo loop, the instruction to the agent is one sentence: you restated a contract fact — delete it and link instead.</p>
+  </div>
+</section>
+
+<section>
+  <h2 class="col"><span class="num">06 / setup</span>Wiring it properly</h2>
+  <p class="lede col">The contract machinery only works if four things are true on disk. These are the lines from the kit's setup runbook that specifically make the common contract resolvable — the full install has nine stages.</p>
+
+  <ol class="steps col">
+    <li>
+      <span class="sn">i</span>
+      <div>
+        <h3>Pin the real OpenSpec package</h3>
+        <p>The package is <code>@fission-ai/openspec</code>. The bare name <code>openspec</code> on the public registry is an unrelated empty <code>0.0.0</code> placeholder and will silently install nothing usable.</p>
+<pre><code>npx @fission-ai/openspec@&lt;pinned-version&gt; --version</code></pre>
+        <p>Record the pinned version in <code>port-facts.md</code>. On a restricted network, resolve it through the approved internal mirror and note the resolved registry.</p>
+      </div>
+    </li>
+    <li>
+      <span class="sn">ii</span>
+      <div>
+        <h3>Put the store beside the kit, never inside it</h3>
+<pre><code>export CORP_SDD_ROOT="$(git rev-parse --show-toplevel)"
+export CORP_WORKSPACE_ROOT="$(cd "$CORP_SDD_ROOT/.." &amp;&amp; pwd -P)"
+export CORP_SYSTEM_STORE_ROOT="${CORP_SYSTEM_STORE_ROOT:-$CORP_WORKSPACE_ROOT/system-store}"
+test "$CORP_SYSTEM_STORE_ROOT" != "$CORP_SDD_ROOT"</code></pre>
+        <p>Then let Git decide which of three cases you are in — never guess, and never ask a person something Git can answer:</p>
+<pre><code>git ls-remote --heads "&lt;store-remote&gt;" "&lt;store-base-branch&gt;"</code></pre>
+        <p>A printed ref means the store already exists: <strong>clone it.</strong> Running the template path here would <code>git init</code> a second, unrelated history against a remote that already holds the project's store — the one mistake in that stage that costs a rewrite rather than a retry. Nothing printed, and this is the first install anywhere: copy <code>system-store-template/</code>, then <code>git init</code>. Already on this machine: touch neither, and gate its branch and worktree with <code>repository-state.sh prepare-base</code>.</p>
+      </div>
+    </li>
+    <li>
+      <span class="sn">iii</span>
+      <div>
+        <h3>Register the store, and prove the root before anything else</h3>
+        <p>Initialize OpenSpec in the store with the pinned package, run the root check, then register the absolute path under the stable <code>&lt;store-id&gt;</code> and prove <code>openspec store list</code> returns that id and that exact path. <strong>Do not run another OpenSpec command until its root is verified.</strong></p>
+      </div>
+    </li>
+    <li>
+      <span class="sn">iv</span>
+      <div>
+        <h3>Onboard each submodule so it can link</h3>
+        <p>Per repository reported by <code>.gitmodules</code>: <code>prepare-base</code>, <code>openspec init</code> with the pinned package, <code>check-openspec-root.sh</code> proving the root is <em>that</em> submodule, copy the spoke tools into <code>tools/</code>, install lefthook, add <code>openspec/repo.txt</code> with a stable repository id, generate the index, run <code>verify-docs.sh</code> — and declare the store:</p>
+<pre><code><span class="cm"># &lt;repo&gt;/openspec/config.yaml</span>
+references:
+  - &lt;store-id&gt;</code></pre>
+        <p>Then append the write-boundary rule to the project instruction file the port actually reads, in every onboarded repository and in the store:</p>
+<pre><code>## HARD RULE — disposer self-check
+After creating or editing ANY file under openspec/ or docs/, run:
+    bash "$(git rev-parse --show-toplevel)/tools/verify-docs.sh"
+Fix every ✗ and re-run until green BEFORE reporting work done.
+CIRCUIT BREAKER: same error surviving 3 attempts → STOP and ask a human.</code></pre>
+        <p>If one submodule cannot be onboarded, finish the others and leave that one <em>un</em>-onboarded rather than half-onboarded — a partial repository is the one state the daily flow cannot detect. Name it in the handover with the failing gate and its output.</p>
+      </div>
+    </li>
+    <li>
+      <span class="sn">v</span>
+      <div>
+        <h3>Prove the guards with bad input, then with a real command</h3>
+        <p>Before trusting any of it: a bad OpenSpec root must fail; <strong>a duplicated shared contract shape must fail the split-brain check</strong>; a bad branch and mismatched ticket commit must fail naming checks; a deliberate bad temporary commit must be rejected by the installed hook. Never weaken a guard to make this green.</p>
+        <p>Files on disk are not a working install. Run <code>corp-spec</code> against a throwaway ticket in one onboarded repository, confirm it reaches the interview and writes <code>openspec/changes/&lt;id&gt;/proposal.md</code>, then delete the branch and the change folder.</p>
+      </div>
+    </li>
+  </ol>
+</section>
+
+<section>
+  <h2 class="col"><span class="num">07 / failure modes</span>When the link is quietly dead</h2>
+  <p class="lede col">Every one of these looks like a working install in a file listing. The middle column is what you actually see; the right column is the fix.</p>
+  <div class="tw" style="max-width:none">
+    <table>
+      <thead><tr><th>Cause</th><th>Symptom</th><th>Fix</th></tr></thead>
+      <tbody>
+        <tr>
+          <td>Spoke has no <code>references:</code> block</td>
+          <td><span class="pill p-pass">✓ 0</span> split-brain passes vacuously; <code>openspec show … --store</code> cannot resolve</td>
+          <td>Add <code>references: [&lt;store-id&gt;]</code> to that repo's <code>openspec/config.yaml</code></td>
+        </tr>
+        <tr>
+          <td>Store not registered on this machine</td>
+          <td><span class="pill p-warn">⚠ warn</span> "referenced but not registered — cannot verify contract facts"</td>
+          <td><code>openspec store register &lt;path&gt; --id &lt;store-id&gt; --yes</code></td>
+        </tr>
+        <tr>
+          <td>Two people invented different store ids</td>
+          <td>Links resolve for one developer, fail for the other; CI disagrees with laptops</td>
+          <td>Fix the id to <code>&lt;project-id&gt;-store</code> in <code>port-facts.md</code>, re-register, update every spoke config</td>
+        </tr>
+        <tr>
+          <td>Submodule never <code>openspec init</code>-ed</td>
+          <td>Specs written from that repo land in the <em>store's</em> <code>openspec/</code></td>
+          <td><code>check-openspec-root.sh</code> before any spec work; onboard the repo</td>
+        </tr>
+        <tr>
+          <td><code>corp-spec</code> run for a spoke without entering its submodule</td>
+          <td><code>REPO_ROOT</code> equals <code>STORE_ROOT</code>; the spoke's proposal and delta land in the store</td>
+          <td><code>cd "$STORE_ROOT/submodules/&lt;repo&gt;"</code> first, then resolve and compare the two roots</td>
+        </tr>
+        <tr>
+          <td>Child delta carries only the spec-scoped fetch line</td>
+          <td><span class="pill p-fail">✗ exit 1</span> <code>Spec '&lt;id&gt;' not found at &lt;store&gt;/openspec/specs/&lt;id&gt;/spec.md</code> for the whole cross-repo window, because the contract merges last</td>
+          <td>Carry both lines, labelled by window, and record the contract <em>change</em> id beside the spec id</td>
+        </tr>
+        <tr>
+          <td>Change-scoped fetch run without <code>--json</code></td>
+          <td><span class="pill p-warn">⚠ exit 0</span> prints <code>proposal.md</code>, silently omits the delta — the agent reads no contract and reports success</td>
+          <td>Always <code>--json --deltas-only</code> on <code>--type change</code></td>
+        </tr>
+        <tr>
+          <td>Shape pasted into a spoke delta</td>
+          <td><span class="pill p-fail">✗ exit 1</span> naming the owner as <code>storeId:specId</code></td>
+          <td>Delete the paste; keep the two <code>openspec show … --store</code> fetch lines</td>
+        </tr>
+        <tr>
+          <td>Contract transcribed by hand into the store</td>
+          <td>Lint is green, contract is wrong — it drifts from the producer's source</td>
+          <td>Replace with an <code>&lt;!-- embed: submodules/&lt;producer&gt;/&lt;path&gt;#Lx-Ly --&gt;</code> pointer</td>
+        </tr>
+        <tr>
+          <td>Stale submodule checkouts</td>
+          <td>Embedded line ranges point at code that moved</td>
+          <td><code>sync-submodules.sh</code>, then re-verify; the lint warns on staleness</td>
+        </tr>
+        <tr>
+          <td>Catalog trusted over the repo</td>
+          <td>Agent quotes a routing hint as fact</td>
+          <td>Trust order: live code &gt; living spec &gt; repo index &gt; catalog. The repo outranks its own index.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="col">
+  <h2><span class="num">08 / in one paragraph</span>The mechanism, compressed</h2>
+  <p>The system store owns every cross-repo shape in one <code>spec.md</code>, and that shape is <em>embedded</em> from the producer's real source rather than retyped. The store is registered once per machine under a stable id; each spoke declares that id in <code>openspec/config.yaml</code> and links the contract with two labelled fetch lines — <code>show &lt;change-id&gt; --type change --store &lt;id&gt; --json --deltas-only</code> while the contract change is open, <code>show &lt;spec-id&gt; --type spec --store &lt;id&gt;</code> once it is archived, because those two routes never overlap. OpenSpec never inlines the store's content, so the link cannot fork. A hand-paste still can — so a zero-dependency lint fingerprints the store's requirement headings and multi-line code fences and fails any spoke spec that repeats one, naming the owner. That lint runs inside the one disposer script the agent, the pre-commit hook, and CI all call. On top of that, ticket order makes the contract a parent ticket approved before its children, and merge order ships producer, then consumers, then the contract itself. One shape, one owner, one file — and three actors who cannot commit around it.</p>
+</section>
+
+<footer>
+  Read from <code>github.com/fresh-fx59/corp-sdd</code> @ main, <code>en/</code> — <code>docs/SETUP.md</code>, <code>docs/OPERATIONS.md</code>, <code>docs/FLOW.md</code>, <code>commands/corp-spec.md</code>, <code>templates/store-contract.md</code>, <code>scripts/tools/check-contract-split-brain.mjs</code>, <code>scripts/tools/check-openspec-root.sh</code>, <code>scripts/tools/verify-docs.sh</code>, <code>skills/corp-drill-down/SKILL.md</code>. The <code>ru/</code> tree is the same kit translated.<br>
+  Kit edition <code>2026-08-26.2</code> · root-walk behaviour verified against OpenSpec 1.7.0 and re-confirmed on 1.10.0; the two fetch routes were measured on 1.10.0 on 2026-08-26 against a registered store with two spokes.
+</footer>
+</div>
+
+</body>
+</html>

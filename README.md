@@ -44,6 +44,10 @@ Corp skills; an external Superpowers installation is not required.
 - `en/` and `ru/`: equivalent English and Russian kits;
 - `tests/`: local Git acceptance tests for both language trees;
 - `docs/index.html`: the published presentation; its source lives in each language kit.
+- `docs/common-contract.html`: how a cross-repo contract stays single-owner —
+  <https://fresh-fx59.github.io/corp-sdd/common-contract.html>. Includes the two fetch
+  routes a spoke delta needs (change-scoped while the contract change is open,
+  spec-scoped once it is archived), measured against OpenSpec 1.10.0.
 
 Each language kit keeps three operational documents — `SETUP.md`, `UPGRADE.md` and
 `OPERATIONS.md` — plus the one-off `MIGRATION-71de101-to-current.md` runbook and three
