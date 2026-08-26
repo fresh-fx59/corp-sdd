@@ -1,6 +1,6 @@
 ---
 description: Закрытие после merge — перенос delta в живые спеки, ADR и индекс
-corp-version: 2026-08-25.15
+corp-version: 2026-08-26.5
 ---
 Архивируй изменение {{args}}. Следуй навыку corp-verification.
 `<openspec>` — вызов CLI OpenSpec, подставленный при установке.
@@ -12,9 +12,12 @@ corp-version: 2026-08-25.15
    Молча не останавливайся.
    Затем выбери место работы. Без флага спроси пользователя ОДИН раз, какой из трёх
    вариантов, покажи в вопросе текущую ветку и дождись ответа — сам не решай:
-   - (1) новая ветка от базы: выполни `bash "$REPO_ROOT/tools/repository-state.sh" prepare-base`,
-     затем `git checkout -b feature/<TICKET>-archive`. Шаг 5 опубликует её и откроет PR.
-   - (2) ветка с твоим именем: то же самое, но с этим именем.
+   - (1) свежая `feature/<TICKET>` от базы: выполни
+     `bash "$REPO_ROOT/tools/repository-state.sh" prepare-base`, затем
+     `git checkout -b feature/<TICKET>` — пересоздай ветку истории, которую merge обычно удалил.
+     Шаг 5 опубликует её и откроет PR. Никаких суффиксов: `check-git-naming.sh` принимает только
+     `feature/ABCD-1234`, поэтому суффикс не проходит pre-push и push отклоняется.
+   - (2) ветка с твоим именем: то же самое, но имя обязано совпадать с `feature/ABCD-1234`.
    - (3) здесь: останься в текущей ветке и НЕ запускай `prepare-base`.
    Флаг отвечает на вопрос заранее и снимает его: `--branch <имя>` — это (2), `--here` — (3).
    Затем в любом режиме выполни `bash "$REPO_ROOT/tools/repository-state.sh" assert-archivable`;

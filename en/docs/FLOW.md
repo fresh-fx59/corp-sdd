@@ -53,7 +53,7 @@ developer-specific absolute path or on the caller's current directory.
 
 ## Proof
 
-Run the seven scripts in `tests/` against both language kits. They cover submodule
+Run the eight scripts in `tests/` against both language kits. They cover submodule
 synchronization, branch safety, aggregation, indexing, path derivation, documentation scope, MCP
-fallback, the explicit `<openspec>` calls, the kit-edition stamps and manifest, and the absence of
-clone-era paths.
+fallback, the explicit `<openspec>` calls, the `corp-lint.mjs` checks themselves, the kit-edition
+stamps and manifest, and the absence of clone-era paths.

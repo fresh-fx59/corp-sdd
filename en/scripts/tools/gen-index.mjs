@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// corp-version: 2026-08-25.15
+// corp-version: 2026-08-26.5
 // gen-index.mjs — generates openspec/index.json + index.md from openspec/specs/ (+ optional build/modules.txt).
 // Deterministic across machines: byte-wise sort (no locale), digest built from sorted content,
 // repo name from committed openspec/repo.txt (never from the checkout folder name).

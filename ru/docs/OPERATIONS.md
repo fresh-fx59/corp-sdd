@@ -19,6 +19,15 @@ bash "$REPO_ROOT/tools/repository-state.sh" inspect
 `CORP_BASE_BRANCH`, локальному `corp.baseBranch`, `.gitmodules` родительского
 хранилища, удалённому `develop`, затем удалённой ветке по умолчанию.
 
+`repository-state.sh inspect` печатает `dirty=` и `untracked=` как два отдельных факта, и
+только первый что-то блокирует. `dirty` считает незакоммиченные изменения ОТСЛЕЖИВАЕМЫХ файлов
+(`--porcelain --untracked-files=no --ignore-submodules=untracked`). Untracked-файлы — локальные
+настройки, файлы с паролями, вывод сборки — выводятся предупреждением и не блокируют ничего,
+поэтому рабочий репозиторий не нужно вычищать перед командой corp-*. В сторе submodule, у
+которого изменились собственные отслеживаемые файлы, называется в ошибке («uncommitted changes
+to TRACKED files inside submodule(s): …»), а не вменяется стору; untracked-файл внутри
+submodule оставляет стор чистым.
+
 ## Какая это версия набора?
 
 Набор версионирован. `VERSION` содержит редакцию, каждая поставляемая команда, навык
@@ -28,7 +37,8 @@ bash "$REPO_ROOT/tools/repository-state.sh" inspect
 ```bash
 KV="$CORP_SDD_ROOT/scripts/tools/kit-version.sh"
 bash "$KV" show                       # редакция набора
-bash "$KV" list                       # все файлы с метками
+bash "$KV" list
+bash "$KV" check                      # падает, если штамп расходится с VERSION                       # все файлы с метками
 bash "$KV" verify                     # ничего не менялось с той редакции
 bash "$KV" identify <файл-установки>  # pristine / MODIFIED / UNSTAMPED
 ```
@@ -49,14 +59,18 @@ bash "$KV" identify <файл-установки>  # pristine / MODIFIED / UNSTA
    CLI OpenSpec `proposal` и `specs` по одному артефакту.
 2. `corp-plan`: подтверждает ветку и создаёт актуальные design и tasks.
 3. `corp-implement`: подтверждает ветку, входит в OpenSpec apply и применяет Corp TDD.
-4. `corp-review`: проверяет состояние и запускает OpenSpec verify до ревью человеком.
+4. `corp-review`: проверяет состояние, затем выполняет `<openspec> validate <change-id> --type
+   change --strict --json` и `<openspec> status --change <change-id> --json` до ревью человеком.
+   Подкоманды `verify` в OpenSpec 1.10 нет.
 5. `corp-test-plan` и `corp-autotest`: строят проверки из утверждённых сценариев.
-   `corp-test-plan` — **black-box**: запрос или событие Kafka для отправки, ожидаемый
-   ответ и ожидаемые строки в базе на стенде разработки — комментарием в той же задаче,
+   `corp-test-plan` — **black-box**: запрос или событие для отправки, ожидаемый
+   ответ и ожидаемые сохранённые строки на стенде разработки — комментарием в той же задаче,
    а не отдельной задачей на тестирование. `corp-autotest` — слой внутри кода.
 6. После merge `corp-archive` выбирает место коммита архивации и запускает OpenSpec
-   archive. По умолчанию это ветка `feature/<TICKET>-archive` от подготовленной базы;
-   `--branch <имя>` задаёт её имя; `--here` архивирует в текущей ветке. Любой режим
+   archive. Без флага он спрашивает, какое из трёх размещений выбрать, и никогда не решает сам;
+   вариант (1) режет свежую `feature/<TICKET>` от подготовленной базы — без суффикса, потому что
+   `check-git-naming.sh` принимает только `feature/ABCD-1234`, и ветка с суффиксом не пройдёт
+   pre-push. `--branch <имя>` задаёт её имя; `--here` архивирует в текущей ветке. Любой режим
    проходит через `assert-archivable`: чистое дерево и HEAD, уже содержащий базу.
 
 Точные вызовы OpenSpec хранятся в `port-facts.md` и установленных командах.

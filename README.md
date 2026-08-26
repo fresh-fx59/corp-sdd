@@ -42,7 +42,7 @@ Corp skills; an external Superpowers installation is not required.
 ## Repository contents
 
 - `en/` and `ru/`: equivalent English and Russian kits;
-- `tests/`: local Git acceptance tests for both language trees;
+- `tests/`: the eight acceptance suites — the single home for them — run against both language trees;
 - `docs/index.html`: the published presentation; its source lives in each language kit.
 - `docs/common-contract.html`: how a cross-repo contract stays single-owner —
   <https://fresh-fx59.github.io/corp-sdd/common-contract.html>. Includes the two fetch
@@ -61,7 +61,7 @@ Background: [Enterprise spec-driven development with AI agents](https://aiengine
 ## Versioning
 
 The kit is versioned as a whole, by **edition**, not per asset. `<kit>/VERSION` holds the
-edition (for example `2026-08-25.15`); every shipped command, skill and tool carries a matching
+edition (for example `2026-08-26.5`); every shipped command, skill and tool carries a matching
 `corp-version:` stamp in its own header; `<kit>/MANIFEST.sha256` pins the exact bytes of each
 stamped file for that edition. An installed copy can therefore be identified at any path,
 without this repository.

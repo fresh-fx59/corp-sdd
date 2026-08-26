@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// corp-version: 2026-08-25.15
+// corp-version: 2026-08-26.5
 // corp-lint.mjs — deterministic disposer for agent-written docs. Zero dependencies.
 // Scope: openspec/, docs/, and the agent home of whatever CLI this port runs
 // (never lints build output or source code docs). The agent home is NEVER hard-coded:
@@ -52,7 +52,10 @@ const CAPS = [
   [/(^|\/)openspec\/changes\/.+\/tasks\.md$/, 200],
   [/(^|\/)openspec\/changes\/.+\/research\.md$/, 400],
   [/(^|\/)openspec\/changes\/.+\/proposal\.md$/, 200],
-  [new RegExp(`(^|/)${AGENT_DIR.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&')}/skills/.+\\.md$`), 250],
+  // Only OUR skills. A port's own CLI ships skills of its own under the same directory — on a
+  // stock `openspec init` two of them are over 300 lines — and capping a file this kit neither
+  // writes nor may edit turns every fresh install red with no sanctioned fix.
+  [new RegExp(`(^|/)${AGENT_DIR.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&')}/skills/corp-[^/]+/.+\\.md$`), 250],
 ];
 
 const errors = [], warns = [];
@@ -194,6 +197,24 @@ for (const p of mdFiles) {
     if (body !== want) err(r, `embed drift at line ${i + 1} (${src}#L${a}-L${b})`,
       'source changed — re-copy the lines (or update the range); specs must embed live truth');
   }
+}
+
+// ---- 4b. proposal.md must carry the two headings `openspec show` parses.
+// Measured on OpenSpec 1.10.0: a proposal without a literal `## Why` makes
+// `show <change> --type change --json --deltas-only` fail with
+// {"code":"show_error","message":"Change must have a Why section"} — the exact call every
+// cross-repo spoke uses to read the contract — while `validate --strict` still reports
+// "valid": true. Upstream validates one thing and its own reader requires another, so the
+// change passes every gate and nobody can read it. That gap is ours to close.
+for (const p of mdFiles.filter(p => /(^|\/)openspec\/changes\/[^/]+\/proposal\.md$/.test(rel(p)))) {
+  const r = rel(p);
+  const body = stripCode(readFileSync(p, 'utf8'));
+  if (!/^##\s+Why\s*$/im.test(body))
+    err(r, 'no "## Why" section',
+        'add a literal `## Why` heading — without it `openspec show <change> --type change --json` fails with "Change must have a Why section", so no other repository can read this change');
+  if (!/^##\s+What\s+Changes\s*$/im.test(body))
+    err(r, 'no "## What Changes" section',
+        'add a literal `## What Changes` heading — the schema expects it beside `## Why`');
 }
 
 // ---- 5. tasks.md state header + checkbox shape (nesting allowed)

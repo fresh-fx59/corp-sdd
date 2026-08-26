@@ -19,6 +19,15 @@ an unknown dirty tree, or hides local commits. It resolves the base from
 `CORP_BASE_BRANCH`, local `corp.baseBranch`, the parent store's `.gitmodules`,
 remote `develop`, then the remote default.
 
+`repository-state.sh inspect` prints `dirty=` and `untracked=` as two separate facts, and only
+the first one gates anything. `dirty` counts uncommitted changes to TRACKED files
+(`--porcelain --untracked-files=no --ignore-submodules=untracked`). Untracked files — local
+settings, credential files, build output — are reported once as a warning and block nothing, so
+a working repository never has to be tidied before a corp-* command. Inside the store, a
+submodule whose own tracked files changed is named in the failure ("uncommitted changes to
+TRACKED files inside submodule(s): …") rather than blamed on the store; an untracked file inside
+a submodule leaves the store clean.
+
 ## Which edition am I running?
 
 The kit is versioned. `VERSION` holds the edition, every shipped command, skill and
@@ -29,6 +38,7 @@ bytes. To tell a kit file apart from a locally changed copy:
 KV="$CORP_SDD_ROOT/scripts/tools/kit-version.sh"
 bash "$KV" show                       # the edition this kit is
 bash "$KV" list                       # every stamped file and its stamp
+bash "$KV" check                      # fail if any stamp differs from VERSION
 bash "$KV" verify                     # nothing changed since that edition
 bash "$KV" identify <installed-file>  # pristine / MODIFIED / UNSTAMPED
 ```
@@ -48,14 +58,19 @@ predates versioning or is your own; `MODIFIED` means it carries a stamp but not 
    OpenSpec CLI for `proposal` and `specs`, one artifact at a time.
 2. `corp-plan`: assert the story branch and create current design and tasks.
 3. `corp-implement`: assert the branch, enter OpenSpec apply, then use Corp TDD.
-4. `corp-review`: inspect state and run OpenSpec verify before human review.
+4. `corp-review`: inspect state, then run `<openspec> validate <change-id> --type change --strict
+   --json` and `<openspec> status --change <change-id> --json` before human review. There is no
+   `verify` subcommand in OpenSpec 1.10.
 5. `corp-test-plan` and `corp-autotest`: derive checks from approved scenarios.
-   `corp-test-plan` is **black-box**: the request or Kafka event to send, the expected
-   response, and the expected database rows on the dev stand — posted as a comment on the
+   `corp-test-plan` is **black-box**: the request or event to send, the expected response, and
+   the expected stored rows on the dev stand — posted as a comment on the
    same ticket, never as a separate test task. `corp-autotest` is the in-code layer.
 6. After merge, `corp-archive`: place the archive commit, then run OpenSpec archive.
-   Default places it on `feature/<TICKET>-archive` cut from the prepared base;
-   `--branch <name>` names that branch; `--here` archives on the current branch.
+   With no flag it asks you which of three placements to use and never picks for you; option (1)
+   cuts a fresh `feature/<TICKET>` from the prepared base — no suffix, because
+   `check-git-naming.sh` accepts `feature/ABCD-1234` and nothing else, so a suffixed branch fails
+   the pre-push guard. `--branch <name>` names that branch; `--here` archives on the current
+   branch.
    Every mode is gated by `assert-archivable`, which requires a clean tree and a
    HEAD that already contains the configured base.
 

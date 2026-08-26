@@ -122,10 +122,21 @@ Slash-команды различаются от версии и профиля:
 <openspec> new change corp-probe
 <openspec> status --change corp-probe --json
 <openspec> instructions proposal --change corp-probe --json
+<openspec> instructions specs --change corp-probe --json
 <openspec> instructions apply --change corp-probe --json
 <openspec> validate corp-probe --type change --strict --json
 <openspec> archive --help
+<openspec> store --help
+<openspec> show --help
+<openspec> list --help
 ```
+
+Вызовы со стором нельзя доказать, пока стора нет, поэтому докажите их в конце этапа 3 на
+зарегистрированном сторе: `store register`, `store list`,
+`show <change-id> --type change --store <id> --json --deltas-only`,
+`show <spec-id> --type spec --store <id>`, `list --specs --store <id>` и
+`instructions specs --change <id> --store <id> --json`. Записывайте каждый доказанный вызов
+с выводом в `port-facts.md`.
 
 Затем удалите пробное изменение. Запишите подставленный токен и шесть доказанных вызовов
 в `port-facts.md`.
@@ -202,6 +213,11 @@ install -m 0644 "$CORP_SDD_ROOT/scripts/tools/check-contract-split-brain.mjs" "$
 install -m 0755 "$CORP_SDD_ROOT/scripts/tools/check-openspec-root.sh" "$CORP_SYSTEM_STORE_ROOT/tools/"
 install -m 0644 "$CORP_SDD_ROOT/templates/port-facts.md" "$CORP_SYSTEM_STORE_ROOT/port-facts.md"
 install -m 0644 "$CORP_SDD_ROOT/templates/conventions-branching.md" "$CORP_SYSTEM_STORE_ROOT/conventions/branching.md"
+mkdir -p "$CORP_SYSTEM_STORE_ROOT/templates"
+install -m 0644 "$CORP_SDD_ROOT/templates/store-contract.md"  "$CORP_SYSTEM_STORE_ROOT/templates/"
+install -m 0644 "$CORP_SDD_ROOT/templates/testing-stack.md"   "$CORP_SYSTEM_STORE_ROOT/templates/"
+install -m 0644 "$CORP_SDD_ROOT/templates/research.md"        "$CORP_SYSTEM_STORE_ROOT/templates/"
+install -m 0644 "$CORP_SDD_ROOT/templates/adr.md"             "$CORP_SYSTEM_STORE_ROOT/templates/"
 ```
 
 Инициализируйте OpenSpec в хранилище закреплённым пакетом и портом из этапа 2.
@@ -238,7 +254,9 @@ git -C "$CORP_SYSTEM_STORE_ROOT" diff -- .gitmodules
 3. через `check-openspec-root.sh` докажите, что корень совпадает с подмодулем;
 4. скопируйте в `tools/`: `repository-state.sh`, `corp-lint.mjs`, `gen-index.mjs`,
    `verify-docs.sh`, `check-openspec-root.sh`, `check-contract-split-brain.mjs`,
-   `check-git-naming.sh`;
+   `check-git-naming.sh`, а в `templates/` этого репозитория — шаблоны, на которые
+   установленные команды ссылаются по пути: `adr.md` (corp-archive), `research.md`
+   и `testing-stack.md`. Команда, называющая отсутствующий шаблон, — мёртвая инструкция;
 5. скопируйте `config/lefthook.yml.example` в `lefthook.yml`, установите lefthook
    из разрешённого внутреннего источника и выполните `lefthook install`;
 6. создайте стабильный id в `openspec/repo.txt`, сгенерируйте индекс и запустите
@@ -248,6 +266,11 @@ git -C "$CORP_SYSTEM_STORE_ROOT" diff -- .gitmodules
    границы связывания, которые ловит только медленный уровень, и порядок границ при отладке.
    `corp-tdd` и `corp-debugging` не называют собственных фреймворков — они читают этот файл,
    поэтому пустой файл оставляет оба навыка без стека;
+6b. приведи `.gitignore` этого репозитория в порядок до первого запуска: вывод сборки, кеши
+   языка (`__pycache__/`, `*.py[cod]`, `target/`, `build/`, `node_modules/`) и локальные
+   настройки должны быть там. За основу возьми `system-store-template/.gitignore`.
+   Untracked-файлы не блокируют ни один gate, но игнорируемый файл невидим для всех gate И его
+   нельзя случайно закоммитить — именно это нужно для файла настроек с паролем;
 7. объявите хранилище в `openspec/config.yaml` этого репозитория, чтобы спека
    ссылалась на общий контракт, а не повторяла его:
 
@@ -256,10 +279,30 @@ git -C "$CORP_SYSTEM_STORE_ROOT" diff -- .gitmodules
      - <store-id>
    ```
 
-   Без этого блока строка `openspec show <spec-id> --type spec --store <store-id>`,
-   которую `corp-spec` пишет в каждую межрепозиторную delta, не разрешается, а
-   `check-contract-split-brain.mjs` завершается нулём, ничего не проверив: вставленная
-   копия контракта пройдёт незамеченной.
+   Без этого блока не разрешается ни один из маршрутов получения — строк, которые `corp-spec`
+   пишет в каждую межрепозиторную delta, — а `check-contract-split-brain.mjs` завершается нулём,
+   ничего не проверив: вставленная копия контракта пройдёт незамеченной.
+
+   Объявляйте и remote, а не только id, если CLI это принимает:
+
+   ```yaml
+   references:
+     - id: <store-id>
+       remote: <store-clone-url>
+   ```
+
+   С указанным remote машина, где стор не зарегистрирован, получает готовую строку
+   `git clone … && openspec store register … --id <store-id>` вместо простой ошибки.
+
+   Маршрута всегда два. Живая спека читается как
+   `openspec show <spec-id> --type spec --store <store-id>`, но ТОЛЬКО после архивации change
+   контракта. Пока он открыт — а это всё межрепозиторное окно, ведь контракт мержится последним —
+   контракт существует только внутри своей change-папки и читается как
+   `openspec show <change-id> --type change --store <store-id> --json --deltas-only`. Проверено на
+   CLI 2026-08-26: до архивации spec-маршрут выходит с кодом 1 и
+   `Spec '<id>' not found at <store>/openspec/specs/<id>/spec.md`, после архивации change-маршрут
+   выходит с кодом 1 и `Change "<id>" not found`. `openspec context` печатает только spec-рецепт,
+   поэтому в открытом окне ему доверять нельзя.
 
 Создайте собственный OpenSpec-корень каждого подмодуля до запуска сгенерированных
 команд внутри него. Иначе родительское хранилище может перехватить изменения.

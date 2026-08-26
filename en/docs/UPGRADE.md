@@ -126,6 +126,11 @@ install -m 0644 "$CORP_SDD_ROOT/scripts/tools/corp-lint.mjs" "$CORP_SYSTEM_STORE
 install -m 0644 "$CORP_SDD_ROOT/scripts/tools/check-contract-split-brain.mjs" "$CORP_SYSTEM_STORE_ROOT/tools/"
 install -m 0755 "$CORP_SDD_ROOT/scripts/tools/check-openspec-root.sh" "$CORP_SYSTEM_STORE_ROOT/tools/"
 install -m 0644 "$CORP_SDD_ROOT/templates/conventions-branching.md" "$CORP_SYSTEM_STORE_ROOT/conventions/branching.md"
+mkdir -p "$CORP_SYSTEM_STORE_ROOT/templates"
+install -m 0644 "$CORP_SDD_ROOT/templates/store-contract.md"  "$CORP_SYSTEM_STORE_ROOT/templates/"
+install -m 0644 "$CORP_SDD_ROOT/templates/testing-stack.md"   "$CORP_SYSTEM_STORE_ROOT/templates/"
+install -m 0644 "$CORP_SDD_ROOT/templates/research.md"        "$CORP_SYSTEM_STORE_ROOT/templates/"
+install -m 0644 "$CORP_SDD_ROOT/templates/adr.md"             "$CORP_SYSTEM_STORE_ROOT/templates/"
 ```
 
 `port-facts.md` is **not** in that list. It holds this installation's probed
@@ -171,6 +176,30 @@ A spoke that grows them starts maintaining a second repository list.
 If a repository's `verify-docs.sh` turns red on content that was green before,
 the new disposer tightened a cap. Regenerate the content. Never loosen the cap
 and never delete the check to finish the upgrade.
+
+## 4a. New per-repository files this edition requires
+
+Two files SETUP now installs into every repository did not exist in older editions, and an
+upgrade that skips them leaves working repositories half-configured:
+
+```bash
+for repo in $(git -C "$CORP_SYSTEM_STORE_ROOT" submodule --quiet foreach 'echo $sm_path'); do
+  d="$CORP_SYSTEM_STORE_ROOT/$repo"
+  mkdir -p "$d/docs" "$d/templates"
+  install -m 0644 "$CORP_SDD_ROOT/templates/testing-stack.md" "$d/templates/"
+  install -m 0644 "$CORP_SDD_ROOT/templates/research.md"      "$d/templates/"
+  install -m 0644 "$CORP_SDD_ROOT/templates/adr.md"           "$d/templates/"
+  test -f "$d/docs/testing-stack.md" || cp "$CORP_SDD_ROOT/templates/testing-stack.md" "$d/docs/testing-stack.md"
+  test -f "$d/.gitignore" || install -m 0644 "$CORP_SDD_ROOT/system-store-template/.gitignore" "$d/.gitignore"
+done
+```
+
+`docs/testing-stack.md` is what `corp-tdd` and `corp-debugging` read instead of naming a
+technology; a repository without it leaves both skills with no stack, and the copy above is a
+blank template someone must fill in with the team (SETUP step 6a). Never overwrite one that
+already holds real content. The `.gitignore` is SETUP step 6b: untracked files never block a
+gate, but an ignored file can never be staged by accident either — merge it into an existing
+`.gitignore` rather than replacing it.
 
 ## 5. Commands, skills, and the placeholder re-resolution
 

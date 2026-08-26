@@ -21,8 +21,6 @@ printf 'T2 submodule layout and inventory contract\n'
 check test -f "$KIT/config/project-repositories.json.example"
 check test -f "$KIT/system-store-template/submodules/.gitkeep"
 check test -f "$KIT/scripts/tools/sync-submodules.sh"
-# The migration runbook quotes the retired clones/ + repos.json layout deliberately — it is the
-# document that moves an installation off it.
 if ! rg -n 'sync-repos|repos\.json|(^|[/` ])clones([/` ]|$)' "$KIT" --glob '!**/slides/**' --glob '!**/MIGRATION-*.md' >/dev/null; then
   pass "clone-era contract is absent"
 else
@@ -143,6 +141,47 @@ for f in corp-spec corp-plan corp-implement corp-autotest; do
     pass "$f stages by path, not everything"
   fi
 done
+
+printf 'T7d corp-archive proposes only branch names the pre-push guard accepts\n'
+if rg -q -- '-archive`' "$KIT/commands/corp-archive.md"; then
+  fail "corp-archive still proposes a feature/<TICKET>-archive branch that check-git-naming.sh rejects"
+else
+  pass "corp-archive proposes no suffixed branch name"
+fi
+
+printf 'T7e the cross-repo fetch line covers the open window, not only the archived spec\n'
+if rg -q -- 'show <contract-change-id> --type change --store <store-id> --json --deltas-only' "$KIT/commands/corp-spec.md"; then
+  pass "corp-spec fetches the contract while its change is still open"
+else
+  fail "corp-spec only fetches an archived spec — a dead link for the whole cross-repo window"
+fi
+if rg -q -- 'show <contract-spec-id> --type spec --store <store-id>' "$KIT/commands/corp-spec.md"; then
+  pass "corp-spec also fetches the living spec after the archive"
+else
+  fail "corp-spec lost the post-archive fetch line"
+fi
+if rg -q -- '(change show|spec show)' "$KIT/commands/corp-spec.md"; then
+  pass "corp-spec warns off the noun-first forms that have no --store"
+else
+  fail "corp-spec does not warn off change show / spec show (no --store flag there)"
+fi
+
+printf 'T7f the contract proposal is required to be readable by the fetch line\n'
+if rg -q 'Change must have a Why section' "$KIT/commands/corp-spec.md"; then
+  pass "corp-spec names the failure a missing ## Why causes downstream"
+else
+  fail "corp-spec does not require ## Why — every spoke fetch would die on show_error"
+fi
+if rg -q 'no "## Why" section' "$KIT/scripts/tools/corp-lint.mjs"; then
+  pass "the disposer enforces it mechanically, not only in prose"
+else
+  fail "nothing but prose requires ## Why — the rule is not enforced"
+fi
+if rg -q 'instructions specs --change <contract-change-id> --store <store-id> --json' "$KIT/commands/corp-spec.md"; then
+  pass "corp-spec carries a disk-read fallback for when the CLI refuses"
+else
+  fail "corp-spec has no fallback when show refuses"
+fi
 
 printf 'T8 corp-archive keeps the write-then-check index order\n'
 if rg -q 'gen-index\.mjs' "$KIT/commands/corp-archive.md"; then pass "corp-archive writes the index"; else fail "corp-archive dropped gen-index (verify-docs only runs --check)"; fi

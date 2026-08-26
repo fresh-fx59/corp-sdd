@@ -1,6 +1,6 @@
 ---
 description: Post-merge close-out — fold the delta into living specs, ADR, index (dev flow)
-corp-version: 2026-08-25.15
+corp-version: 2026-08-26.5
 ---
 Archive change {{args}}. Follow skill corp-verification (evidence for every step below).
 `{{args}}` is `<change-id> [--here | --branch <name>]`. The flag chooses WHERE the archive
@@ -11,9 +11,13 @@ invocation setup resolved.
    user ONCE — continue here or stop — and follow the answer. Never stop silently.
    Then place yourself. With no flag, ask the user ONCE which of the three, print the
    current branch in the question, and wait for the answer — never pick for them:
-   - (1) new branch from the base: run `bash "$REPO_ROOT/tools/repository-state.sh" prepare-base`,
-     then `git checkout -b feature/<TICKET>-archive`. Step 5 publishes it and opens a PR.
-   - (2) a branch you name: the same, using that name instead of `feature/<TICKET>-archive`.
+   - (1) a fresh `feature/<TICKET>` from the base: run
+     `bash "$REPO_ROOT/tools/repository-state.sh" prepare-base`, then
+     `git checkout -b feature/<TICKET>` — recreating the story branch, which the merge usually
+     deleted. Step 5 publishes it and opens a PR. The name carries no suffix: `check-git-naming.sh`
+     accepts `feature/ABCD-1234` and nothing else, so a suffixed name fails the pre-push guard and
+     the push is rejected.
+   - (2) a branch you name: the same, using that name — it must still match `feature/ABCD-1234`.
    - (3) here: stay on the current branch and do NOT run `prepare-base`.
    A flag answers the question in advance and skips it: `--branch <name>` is (2), `--here` is (3).
    Then, in every mode, run `bash "$REPO_ROOT/tools/repository-state.sh" assert-archivable`;

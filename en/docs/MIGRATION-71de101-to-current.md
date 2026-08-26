@@ -64,7 +64,7 @@ test -f "$OLD_ROOT/VERSION" && echo "UNEXPECTED: old checkout has a VERSION" || 
 
 Expected:
 - `cat VERSION` prints the new edition (at the time this runbook was written:
-  `2026-08-25.14`). Use whatever the file says; do not hardcode it below.
+  `2026-08-26.5`). Use whatever the file says; do not hardcode it below.
 - `kit-version.sh verify` prints `✓ 24 file(s) match <edition>` and exits 0.
   **A kit that fails its own manifest is not a release — re-unpack it and stop.**
 - `rev-parse HEAD` prints `71de101…`.
@@ -620,7 +620,11 @@ CODE_OF_CONDUCT and NOTICE. Record both names in `port-facts.md`.
 Note on the old install: `71de101`'s `corp-lint.mjs` hard-coded `.qwen/`. If your port
 is not `.qwen`, the old lint's agent-directory rule and its 250-line skill cap were
 passing **vacuously** on your install. Expect the new lint to report skill-file length
-errors that the old one never raised. Regenerate the content; never raise the cap.
+errors that the old one never raised — but only for `corp-*` skills: the cap regex is
+`<agent-dir>/skills/corp-[^/]+/…`, so a port's own skills shipped under the same
+directory (two of them exceed 300 lines on a stock `openspec init`) are exempt, because
+capping a file this kit neither writes nor may edit turns a fresh install red with no
+sanctioned fix. Regenerate the content of a `corp-*` skill; never raise the cap.
 
 ### 5.3 Ids are a contract
 
@@ -725,10 +729,30 @@ Per-repository OpenSpec and hooks (`docs/SETUP.md` §5), for each submodule:
      - <store-id>
    ```
 
-   Without this block, `openspec show <spec-id> --type spec --store <store-id>` — the
-   fetch line `corp-spec` writes into every cross-repo delta — cannot resolve, and
-   `check-contract-split-brain.mjs` exits 0 without checking anything, so a pasted
-   contract shape goes unnoticed;
+   Without this block neither fetch route resolves — the lines `corp-spec` writes into
+   every cross-repo delta — and `check-contract-split-brain.mjs` exits 0 without checking
+   anything, so a pasted contract shape goes unnoticed. **Two routes, never one**, because
+   the store contract merges LAST: while its change is open the contract exists only inside
+   its change folder, and archiving it deletes that folder the moment the spec route starts
+   working. Every spoke delta carries BOTH, labelled:
+
+   ```text
+   while the contract change is open:
+     <openspec> show <contract-change-id> --type change --store <store-id> --json --deltas-only
+   after the contract change is archived:
+     <openspec> show <contract-spec-id> --type spec --store <store-id>
+   which window am I in: <openspec> list --specs --store <store-id> — the spec id absent means open
+   if the CLI refuses (a broken contract proposal, an unregistered store), read the file:
+     <openspec> instructions specs --change <contract-change-id> --store <store-id> --json  # prints changeDir
+     cat <changeDir>/specs/<contract-spec-id>/spec.md
+   ```
+
+   Measured against the CLI on 2026-08-26: the spec route exits 1 with
+   `Spec '<id>' not found at <store>/openspec/specs/<id>/spec.md` before the archive, and the
+   change route exits 1 with `Change "<id>" not found` after it. `--json` is mandatory on the
+   change route: without it the CLI prints proposal.md only, omits the delta silently and
+   still exits 0. `openspec context` prints only the spec recipe, so it cannot be trusted
+   during the open window;
 6. generate the index: `node "$repo/tools/gen-index.mjs"`.
 
 Append the write-boundary rule to the project instruction file that stage 5 proved the
@@ -830,14 +854,17 @@ They break muscle memory, not files:
 - **`corp-archive` changed argument form, placement, gate and commit message.**
   Old: `Precondition: … you are on updated main` and
   `5. Commit ("archive <change-id>: living spec + ADR + index")`.
-  New: `{{args}}` is `<change-id> [--here | --branch <name>]`, the default cuts
-  `feature/<TICKET>-archive` from the prepared base, every mode runs
+  New: `{{args}}` is `<change-id> [--here | --branch <name>]`, the default cuts a fresh
+  **unsuffixed** `feature/<TICKET>` from the prepared base — the merge usually deleted the
+  story branch, so the name is free. It carries no suffix because `check-git-naming.sh`
+  accepts `^feature/ABCD-1234$` and nothing else: `feature/ABCD-1234-archive` fails the
+  pre-push guard and the push is rejected. Every mode runs
   `assert-archivable`, and the commit message is
   `docs(<TICKET>): archive {{args}} living spec and ADR`. The old
   `archive <id>: …` subject is now **rejected** by `check-git-naming.sh`.
 - **`corp-plan` and `corp-spec` now commit by path.** `git add <path>`; never
   `git add -A`, `git add .` or `git commit -a`.
-- **`corp-test-plan` is a rewrite** (11 → 66 lines) and is now black-box: the request
+- **`corp-test-plan` is a rewrite** (11 → 71 lines) and is now black-box: the request
   or Kafka event to send, the expected response, and the expected database rows on the
   dev stand — posted as a comment on the same ticket, never as a separate test task.
 - **`index-all.sh` moved its default Zoekt index directory** to
@@ -846,23 +873,30 @@ They break muscle memory, not files:
 
 ---
 
-## Stage 9 — Fill in `docs/testing-stack.md` in every repository
+## Stage 9 — Install `templates/` and fill in `docs/testing-stack.md` in every repository
 
 This file is new in the current kit and has no counterpart in `71de101`. It is not
 optional: `corp-tdd` and `corp-debugging` name no framework of their own — they read
-this file, so an empty one leaves both skills without a stack.
+this file, so an empty one leaves both skills without a stack. The same loop installs the
+templates the commands cite BY PATH — `docs/SETUP.md` §5 step 4 now copies `adr.md`
+(`corp-archive`), `research.md` and `testing-stack.md` into every repository's `templates/`,
+and `docs/UPGRADE.md` stage 4a does the same on an upgrade. A command that names a template
+the repository does not have is a dead instruction.
 
 ```bash
 git -C "$CORP_SYSTEM_STORE_ROOT" submodule foreach --quiet 'echo "$toplevel/$sm_path"' \
   | while IFS= read -r repo; do
-      mkdir -p "$repo/docs"
+      mkdir -p "$repo/docs" "$repo/templates"
+      install -m 0644 "$CORP_SDD_ROOT/templates/adr.md"           "$repo/templates/"
+      install -m 0644 "$CORP_SDD_ROOT/templates/research.md"      "$repo/templates/"
+      install -m 0644 "$CORP_SDD_ROOT/templates/testing-stack.md" "$repo/templates/"
       test -f "$repo/docs/testing-stack.md" \
         || install -m 0644 "$CORP_SDD_ROOT/templates/testing-stack.md" "$repo/docs/testing-stack.md"
     done
 ```
 
-Expected: a `docs/testing-stack.md` in every repository; an existing one is never
-overwritten.
+Expected: `adr.md`, `research.md` and `testing-stack.md` in every repository's `templates/`,
+and a `docs/testing-stack.md` in every repository; an existing one is never overwritten.
 
 Fill each one in **with the team**, from what the build actually runs — not from what
 the team intends to use. The template has four sections, and every one must be
@@ -897,6 +931,28 @@ for one fast-tier and one slow-tier command per repository into the handover.
 
 ---
 
+## Stage 9b — Give every repository an honest `.gitignore`
+
+`docs/SETUP.md` §5 step 6b is also new: before the first run, each repository's
+`.gitignore` must cover build output, language caches (`__pycache__/`, `*.py[cod]`,
+`target/`, `build/`, `node_modules/`) and local-only settings.
+`system-store-template/.gitignore` is the starting point. Untracked files never block a
+gate, but an ignored file is invisible to every gate AND can never be staged by accident —
+which is exactly what you want for a settings file holding a password.
+
+```bash
+git -C "$CORP_SYSTEM_STORE_ROOT" submodule foreach --quiet 'echo "$toplevel/$sm_path"' \
+  | while IFS= read -r repo; do
+      test -f "$repo/.gitignore" \
+        || install -m 0644 "$CORP_SDD_ROOT/system-store-template/.gitignore" "$repo/.gitignore"
+    done
+```
+
+Expected: a `.gitignore` in every repository. Merge into an existing one — never replace
+it, and never let this step drop a rule the team already relies on.
+
+---
+
 ## Stage 10 — Fix in-flight delta specs
 
 Any change folder that existed before the migration was written against the old
@@ -922,6 +978,8 @@ Expected end state: `"valid": true` for every change. Fix each failure at its ca
 |---|---|---|
 | lint: `heading "### <x>" (line N) is not a requirement heading` | a `### ` heading that is not `### Requirement:` | Use `### Requirement: <text>` **verbatim**. Upstream logs INFO only, keeps `valid: true`, and silently **drops that requirement from the deltas** — it never reaches the living spec. Only the `<text>` may be Russian. |
 | lint: `requirement "<x>" (line N) sits outside a delta section` | requirement above the first `## ADDED\|MODIFIED\|REMOVED\|RENAMED Requirements` | Move it under a delta section. Upstream drops it silently with `valid=true`; this error is the only thing between you and a lost requirement. |
+| lint: `no "## Why" section` (proposal.md) | the proposal carries no literal `## Why` heading | Add one. Without it the change route every cross-repo spoke uses — `<openspec> show <change-id> --type change --store <store-id> --json --deltas-only` — fails with `{"code":"show_error","message":"Change must have a Why section"}` while `validate --strict` still reports `"valid": true`. No flag bypasses it. New hard error in `corp-lint.mjs` (check 4b); old proposals written without it now go red. |
+| lint: `no "## What Changes" section` (proposal.md) | the proposal carries no literal `## What Changes` heading | Add one beside `## Why` — the schema expects the pair. New hard error in `corp-lint.mjs` (check 4b). |
 | CLI: missing delta section / no requirement in a delta section | no `## ADDED Requirements` etc. | Add the section header. `DELTA_SECTION` is `/^##\s+(ADDED\|MODIFIED\|REMOVED\|RENAMED)\s+Requirements\s*$/im`. |
 | CLI: ADDED/MODIFIED requirement with no scenario | no level-4 heading under it | Add at least one. Any `####` heading counts, including `#### Сценарий: …`. |
 | lint warning: `requirement "<x>" states no SHALL/MUST` | normative verb missing | Put SHALL or MUST in the requirement text. |
@@ -1175,7 +1233,7 @@ be resolved on the target machine before or during the run — do not invent the
    direct read here. Re-diff them before relying on any detail beyond what 8.4 states.
 9. **The exact CI system.** `docs/SETUP.md` §7 ships a Groovy/Jenkins template and marks
    it TEMPLATE. Adapt and smoke-test it; this runbook does not migrate CI.
-10. **The kit edition moved during the writing of this runbook** (`VERSION` read as
-    `2026-08-25.13`, then `2026-08-25.14` minutes later, with `kit-version.sh check` and
-    `verify` both green at `.14`). Always read `VERSION` on the kit you unpack rather than
-    trusting any edition string quoted here.
+10. **The kit edition moves fast.** During the writing of this runbook `VERSION` read
+    `2026-08-25.13`, then `2026-08-25.14` minutes later; it was last re-checked against
+    `2026-08-26.5`. Always read `VERSION` on the kit you unpack rather than trusting any
+    edition string quoted here.

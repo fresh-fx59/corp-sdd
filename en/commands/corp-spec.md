@@ -1,6 +1,6 @@
 ---
 description: Draft the delta spec(s) for a story via interview; fan out across repos when needed (analyst flow)
-corp-version: 2026-08-25.15
+corp-version: 2026-08-26.5
 ---
 You are drafting the spec for story {{args}}.
 `<change-id>` is the OpenSpec change folder name; `<openspec>` is the OpenSpec CLI invocation setup
@@ -89,9 +89,11 @@ Follow skills corp-drill-down (all system facts) and corp-verification (all done
    text and the scenario headings may be Russian (`#### Сценарий: …` is valid: upstream counts any
    level-4 heading). Every ADDED or MODIFIED requirement needs at least one scenario, and its text
    should carry SHALL or MUST.
-   Run `bash "$REPO_ROOT/tools/verify-docs.sh"`; fix until green. Its corp-lint rule enforces all
-   of the above, so a heading openspec would reject dies here, not at archive time.
-   Then ask openspec itself — corp-lint mirrors the rules, the CLI IS them:
+   Run `bash "$REPO_ROOT/tools/verify-docs.sh"`; fix until green. corp-lint covers only what the
+   CLI is blind to: a requirement outside any delta section, a `### ` heading that is not
+   `### Requirement:` beside a good one, the missing `## Why` / `## What Changes` in proposal.md,
+   plus SHALL/MUST and observability as warnings. The scenario rule and the rest of the delta
+   grammar belong to the CLI, so verify-docs green is NOT enough on its own:
    `<openspec> validate <change-id> --type change --strict --json`. Fix until `"valid": true`;
    never hand over a change the CLI rejects.
    HANDOVER (do this yourself — the analyst never touches git): stage the change folder BY PATH
@@ -122,7 +124,18 @@ Follow skills corp-drill-down (all system facts) and corp-verification (all done
    proposal and contract delta exist. They land in the STORE's own
    `openspec/changes/<contract-change-id>/` — proposal.md, the contract delta spec and research.md
    all belong to the store, on the parent ticket's branch. Use `store-contract.md`; shape facts
-   live there and nowhere else. Run `bash "$STORE_ROOT/tools/verify-docs.sh"` and
+   live there and nowhere else.
+   The contract proposal MUST carry a literal `## Why` heading and a literal `## What Changes`
+   heading. This is not style: without `## Why`, every spoke's fetch line dies with
+   `{"code":"show_error","message":"Change must have a Why section"}` — while
+   `validate --strict` still reports `"valid": true`, `status` and `list` still work, and no gate
+   in this kit notices. A contract nobody can read is worse than one that fails loudly, so prove
+   it yourself before you push:
+   ```bash
+   <openspec> show <contract-change-id> --type change --store <store-id> --json --deltas-only
+   ```
+   It must print `"deltaCount"` and the requirement text. No flag bypasses a missing `## Why` —
+   `--requirements-only`, `--no-scenarios` and the deprecated `change show` all fail the same way. Run `bash "$STORE_ROOT/tools/verify-docs.sh"` and
    `<openspec> validate <contract-change-id> --type change --strict --json`; fix until both are
    green and `"valid": true`. Then commit, push, open the store PR, and
    post its link on the parent story.
@@ -143,8 +156,26 @@ Follow skills corp-drill-down (all system facts) and corp-verification (all done
       `<openspec> instructions proposal --change <change-id> --json` and
       `<openspec> instructions specs --change <change-id> --json` — those two only — until the
       proposal and that repo's OWN delta spec exist. The delta LINKS the store
-      contract by spec id and store id — never restates the shape. Include the fetch line:
-      `<openspec> show <contract-spec-id> --type spec --store <store-id>`
+      contract — never restates the shape — and carries BOTH fetch lines, because the two routes
+      never overlap: the store contract merges LAST, so while it is open it exists only inside its
+      change folder, and archiving it deletes that folder the moment the spec route starts working.
+      Write both, labelled, and record the contract CHANGE id next to the spec id — during the open
+      window the spec id alone cannot resolve anything:
+      ```text
+      contract: <contract-spec-id> in store <store-id> (change <contract-change-id>)
+      while the contract change is open:
+        <openspec> show <contract-change-id> --type change --store <store-id> --json --deltas-only
+      after the contract change is archived:
+        <openspec> show <contract-spec-id> --type spec --store <store-id>
+      which window am I in: <openspec> list --specs --store <store-id> — the spec id absent means open
+      if the CLI refuses (a broken contract proposal, an unregistered store), read the file:
+        <openspec> instructions specs --change <contract-change-id> --store <store-id> --json  # prints changeDir
+        cat <changeDir>/specs/<contract-spec-id>/spec.md
+      ```
+      `--json` is mandatory on the change route: without it the CLI prints proposal.md only, omits
+      the delta silently and still exits 0. Never use `<openspec> change show` or
+      `<openspec> spec show` here — the noun-first forms have no `--store` flag and resolve against
+      the spoke instead.
       Append verified facts to research.md as pointers. No design.md, no tasks.md.
       Split the tester's facts by who owns them. Facts this change DEFINES — a new endpoint, a new
       field, a new topic, the error contract — are normative: they belong in the delta spec, in the

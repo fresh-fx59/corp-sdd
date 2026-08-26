@@ -1,7 +1,7 @@
 ---
 name: corp-verification
 description: Verification before completion — no done-claims without fresh evidence. Use before reporting ANY work finished.
-corp-version: 2026-08-25.15
+corp-version: 2026-08-26.5
 ---
 ## The rule
 Every claim of completion, for every kind of work, carries EVIDENCE produced AFTER the last edit:

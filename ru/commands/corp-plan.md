@@ -1,6 +1,6 @@
 ---
 description: Создать design и tasks утверждённого изменения по текущему коду
-corp-version: 2026-08-25.15
+corp-version: 2026-08-26.5
 ---
 Спланируй {{args}}. Следуй corp-drill-down и corp-verification.
 `{{args}}` — это `<change-id>`; `<openspec>` — вызов CLI OpenSpec, подставленный при установке.

@@ -319,6 +319,31 @@ rm -f "$REPO/local-settings.properties" "$REPO/build-output.tmp"
 G -C "$REPO" push --quiet origin --delete feature/DEMO-777 >/dev/null 2>&1
 restore_repo
 
+echo "T18c a submodule's untracked build output does not make the parent dirty"
+SUP="$(mktemp -d)"
+G init -q "$SUP/child"; G -C "$SUP/child" config user.email t@t.t; G -C "$SUP/child" config user.name t
+printf 'x\n' > "$SUP/child/f.txt"; G -C "$SUP/child" add f.txt; G -C "$SUP/child" commit -qm init
+G init -q "$SUP/parent"; G -C "$SUP/parent" config user.email t@t.t; G -C "$SUP/parent" config user.name t
+G -C "$SUP/parent" -c protocol.file.allow=always submodule add -q "$SUP/child" child >/dev/null 2>&1
+G -C "$SUP/parent" commit -qm "add submodule" >/dev/null
+printf 'junk\n' > "$SUP/parent/child/build.pyc"
+out=$(bash "$SCRIPT" inspect --repo "$SUP/parent" --base master 2>&1); rc=$?
+if [ "$rc" -eq 0 ] && grep -q "^dirty=0" <<<"$out"; then
+  ok "an untracked file inside a submodule leaves the parent clean"
+else
+  no "a submodule's build output made the parent dirty (rc=$rc)" "$out"
+fi
+
+echo "T18d a submodule's TRACKED change names the submodule, not the parent"
+printf 'y\n' >> "$SUP/parent/child/f.txt"
+out=$(bash "$SCRIPT" inspect --repo "$SUP/parent" --base master 2>&1)
+if grep -q "^dirty=1" <<<"$out"; then
+  ok "a tracked change inside a submodule still counts"
+else
+  no "a tracked submodule change was ignored" "$out"
+fi
+rm -rf "$SUP"
+
 echo
 echo "PASS=$PASS FAIL=$FAIL"
 [ "$FAIL" -eq 0 ]

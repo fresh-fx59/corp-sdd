@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// corp-version: 2026-08-25.15
+// corp-version: 2026-08-26.5
 // check-contract-split-brain.mjs — the split-brain lint. Zero dependencies.
 //
 // Rule (design §"one spec-truth"): a cross-repo contract fact lives in exactly ONE place — the
@@ -25,21 +25,34 @@ const errors = [];
 const warns = [];
 
 // ---- 1. references: from the spoke's config -------------------------------------------------
-// Deliberately a line parser, not a YAML dependency: we read one flat list of scalars, and the
-// disposer must stay zero-dependency on a restricted network.
+// Deliberately a line parser, not a YAML dependency: the disposer must stay zero-dependency on a
+// restricted network. Three forms are legal upstream and all three must yield the bare store id —
+// a scalar item, the `{id, remote}` map form (which the CLI accepts and SETUP recommends, because
+// the remote turns an unregistered store into a pasteable clone+register line), and the inline
+// list. Reading the map form as the literal string `id: <store-id>` would leave every id
+// unresolvable and downgrade this whole check to a warning nobody reads.
 function readReferences(file) {
   if (!existsSync(file)) return [];
   const lines = readFileSync(file, 'utf8').split('\n');
   const out = [];
   let inBlock = false;
+  let pendingMap = false;                    // inside a `- id: x` item, skipping its other keys
   for (const raw of lines) {
     const line = raw.replace(/\s+$/, '');
-    if (/^references:\s*$/.test(line)) { inBlock = true; continue; }
+    if (/^references:\s*$/.test(line)) { inBlock = true; pendingMap = false; continue; }
     if (inBlock) {
       const m = line.match(/^\s+-\s+(.+?)\s*$/);
-      if (m) { out.push(m[1].replace(/^["']|["']$/g, '')); continue; }
+      if (m) {
+        const item = m[1].replace(/^["']|["']$/g, '');
+        const mapped = item.match(/^id:\s*(.+?)\s*$/);
+        out.push((mapped ? mapped[1] : item).replace(/^["']|["']$/g, ''));
+        pendingMap = Boolean(mapped);
+        continue;
+      }
+      // continuation keys of a map item (`    remote: …`) belong to the id just pushed
+      if (pendingMap && /^\s+[A-Za-z_][\w-]*:\s*/.test(line)) continue;
       if (line.trim() === '' || line.startsWith('#')) continue;
-      inBlock = false;                       // any other top-level key ends the list
+      inBlock = false; pendingMap = false;   // any other top-level key ends the list
     }
     // inline form: references: [a, b]
     const inline = line.match(/^references:\s*\[(.*)\]\s*$/);

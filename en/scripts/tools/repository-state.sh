@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# corp-version: 2026-08-25.15
+# corp-version: 2026-08-26.5
 # repository-state.sh — inspect and enforce the Git state expected by Corp SDD.
 # Never resets, cleans, rebases, force-checks out, mutates stashes, or deletes work.
 set -uo pipefail
@@ -106,8 +106,14 @@ upstream=$(git -C "$REPO" rev-parse --abbrev-ref --symbolic-full-name '@{u}' 2>/
 # repository legitimately holds local-only settings, credential files and scratch output that
 # must not be committed, and blocking on them pushes the operator into `git add` chores or,
 # worse, into committing a secret. They are reported, never enforced.
+# Submodules: git reports a submodule with ANY internal change as a modified gitlink here, so an
+# untracked .pyc inside a spoke would make the STORE look dirty. Ignore that class; a submodule
+# whose tracked files changed still shows, and is named below rather than blamed on this repo.
 dirty=0
-[ -n "$(git -C "$REPO" status --porcelain --untracked-files=no)" ] && dirty=1
+dirty_list=$(git -C "$REPO" status --porcelain --untracked-files=no --ignore-submodules=untracked)
+[ -n "$dirty_list" ] && dirty=1
+dirty_submodules=$(printf '%s\n' "$dirty_list" | awk '$1 == "M" || $1 == "MM" { print $2 }' \
+  | while read -r p; do [ -n "$p" ] && [ -f "$REPO/$p/.git" -o -d "$REPO/$p/.git" ] && printf '%s ' "$p"; done)
 untracked=$(git -C "$REPO" ls-files --others --exclude-standard | wc -l | tr -d ' ')
 stash_count=$(git -C "$REPO" stash list | wc -l | tr -d ' ')
 ahead=0
@@ -146,8 +152,14 @@ die_state() {
 
 [ -n "$branch" ] || die_state "detached HEAD" "  ↳ inspect it: git -C \"$REPO\" log -1 --oneline"
 if [ "$dirty" -eq 1 ] && { [ "$MODE" != assert-change ] || [ "$ALLOW_DIRTY" -eq 0 ]; }; then
+  if [ -n "$dirty_submodules" ]; then
+    die_state "uncommitted changes to TRACKED files inside submodule(s): $dirty_submodules" \
+      "  ↳ the change is in the submodule, not in this repository" \
+      "  ↳ inspect it: git -C \"$REPO/${dirty_submodules%% *}\" status --short" \
+      "  ↳ commit it there first; the pointer bump is then committed in THIS repository by whoever merges the child PR"
+  fi
   die_state "working tree has uncommitted changes to TRACKED files" \
-    "  ↳ inspect them: git -C \"$REPO\" status --short --untracked-files=no"
+    "  ↳ inspect them: git -C \"$REPO\" status --short --untracked-files=no --ignore-submodules=untracked"
 fi
 # Untracked files are reported once and never block — see the note above.
 if [ "$untracked" -ne 0 ]; then
@@ -261,7 +273,7 @@ if [ "$CHECKOUT" -eq 1 ] && [ "$branch" != "$expected_change" ]; then
   branch=$(git -C "$REPO" symbolic-ref --quiet --short HEAD 2>/dev/null || true)
   upstream=$(git -C "$REPO" rev-parse --abbrev-ref --symbolic-full-name '@{u}' 2>/dev/null || true)
   dirty=0
-  [ -n "$(git -C "$REPO" status --porcelain --untracked-files=no)" ] && dirty=1
+  [ -n "$(git -C "$REPO" status --porcelain --untracked-files=no --ignore-submodules=untracked)" ] && dirty=1
 fi
 
 [ "$branch" = "$expected_change" ] \

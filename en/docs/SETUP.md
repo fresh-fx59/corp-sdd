@@ -116,16 +116,27 @@ token, the exact invocation of the pinned package:
 ```
 
 Resolve it to whatever runs on this machine, for example `npx @fission-ai/openspec@<pinned-version>`
-or an internal wrapper on PATH, and prove all six calls the workflow uses:
+or an internal wrapper on PATH, and prove the calls the workflow uses:
 
 ```bash
 <openspec> new change corp-probe
 <openspec> status --change corp-probe --json
 <openspec> instructions proposal --change corp-probe --json
+<openspec> instructions specs --change corp-probe --json
 <openspec> instructions apply --change corp-probe --json
 <openspec> validate corp-probe --type change --strict --json
 <openspec> archive --help
+<openspec> store --help
+<openspec> show --help
+<openspec> list --help
 ```
+
+The store-scoped calls the cross-repo path needs cannot be proven until a store exists, so
+prove them at the end of stage 3 instead, against the registered store:
+`store register`, `store list`, `show <change-id> --type change --store <id> --json --deltas-only`,
+`show <spec-id> --type spec --store <id>`, `list --specs --store <id>`, and
+`instructions specs --change <id> --store <id> --json`. Record every proven call with its
+output in `port-facts.md`.
 
 Delete the probe change afterwards. Record the resolved token and the six proven calls
 in `port-facts.md`.
@@ -201,6 +212,11 @@ install -m 0644 "$CORP_SDD_ROOT/scripts/tools/check-contract-split-brain.mjs" "$
 install -m 0755 "$CORP_SDD_ROOT/scripts/tools/check-openspec-root.sh" "$CORP_SYSTEM_STORE_ROOT/tools/"
 install -m 0644 "$CORP_SDD_ROOT/templates/port-facts.md" "$CORP_SYSTEM_STORE_ROOT/port-facts.md"
 install -m 0644 "$CORP_SDD_ROOT/templates/conventions-branching.md" "$CORP_SYSTEM_STORE_ROOT/conventions/branching.md"
+mkdir -p "$CORP_SYSTEM_STORE_ROOT/templates"
+install -m 0644 "$CORP_SDD_ROOT/templates/store-contract.md"  "$CORP_SYSTEM_STORE_ROOT/templates/"
+install -m 0644 "$CORP_SDD_ROOT/templates/testing-stack.md"   "$CORP_SYSTEM_STORE_ROOT/templates/"
+install -m 0644 "$CORP_SDD_ROOT/templates/research.md"        "$CORP_SYSTEM_STORE_ROOT/templates/"
+install -m 0644 "$CORP_SDD_ROOT/templates/adr.md"             "$CORP_SYSTEM_STORE_ROOT/templates/"
 ```
 
 Initialize OpenSpec in the store using the exact pinned package and port discovered
@@ -237,7 +253,10 @@ For each path reported by `.gitmodules`:
 3. run `check-openspec-root.sh` and prove the reported root is that submodule;
 4. copy the spoke tools: `repository-state.sh`, `corp-lint.mjs`, `gen-index.mjs`,
    `verify-docs.sh`, `check-openspec-root.sh`, `check-contract-split-brain.mjs`,
-   and `check-git-naming.sh` into its `tools/` directory;
+   and `check-git-naming.sh` into its `tools/` directory, and the templates the installed
+   commands cite by path -- `adr.md` (corp-archive), `research.md` and `testing-stack.md` --
+   into its `templates/` directory. A command that names a template the repository does not
+   have is a dead instruction;
 5. copy `config/lefthook.yml.example` to `lefthook.yml`, install lefthook through
    the approved internal channel, then run `lefthook install`;
 6. add a stable repository id at `openspec/repo.txt`, generate its index, and run
@@ -247,6 +266,11 @@ For each path reported by `.gitmodules`:
    wiring boundaries only the slow tier catches, and the debugging boundary order.
    `corp-tdd` and `corp-debugging` name no framework of their own — they read this file,
    so an empty one leaves both skills without a stack;
+6b. make that repository's `.gitignore` honest before the first run: build output, language
+   caches (`__pycache__/`, `*.py[cod]`, `target/`, `build/`, `node_modules/`) and local-only
+   settings belong there. Copy `system-store-template/.gitignore` as a starting point. Untracked
+   files never block a gate, but an ignored file is invisible to every gate AND can never be
+   staged by accident — which is what you want for a settings file holding a password;
 7. declare the store in that repository's `openspec/config.yaml` so a spoke can
    link the shared contract instead of restating it:
 
@@ -255,10 +279,30 @@ For each path reported by `.gitmodules`:
      - <store-id>
    ```
 
-   Without this block `openspec show <spec-id> --type spec --store <store-id>`
-   cannot resolve — the fetch line `corp-spec` writes into every cross-repo delta
-   — and `check-contract-split-brain.mjs` exits 0 without checking anything, so a
-   pasted contract shape goes unnoticed.
+   Without this block neither fetch route resolves — the lines `corp-spec` writes into
+   every cross-repo delta — and `check-contract-split-brain.mjs` exits 0 without checking
+   anything, so a pasted contract shape goes unnoticed.
+
+   Declare the remote too, not just the id, when the CLI accepts it:
+
+   ```yaml
+   references:
+     - id: <store-id>
+       remote: <store-clone-url>
+   ```
+
+   With the remote present, a machine that has not registered the store gets a pasteable
+   `git clone … && openspec store register … --id <store-id>` instead of a bare failure.
+
+   Two routes, never one. A living spec resolves with
+   `openspec show <spec-id> --type spec --store <store-id>`, but ONLY after the contract change
+   is archived. While that change is open — which is the whole cross-repo window, since the
+   contract merges last — the contract exists only inside its change folder and is read with
+   `openspec show <change-id> --type change --store <store-id> --json --deltas-only`. Verified
+   against the CLI on 2026-08-26: the spec route exits 1 with
+   `Spec '<id>' not found at <store>/openspec/specs/<id>/spec.md` before the archive, and the
+   change route exits 1 with `Change "<id>" not found` after it. `openspec context` prints only
+   the spec recipe, so it cannot be trusted during the open window.
 
 Initialize every submodule's OpenSpec root before invoking generated commands from
 inside it. This prevents the parent store root from capturing repository changes.

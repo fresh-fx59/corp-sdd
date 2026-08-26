@@ -64,7 +64,7 @@ test -f "$OLD_ROOT/VERSION" && echo "UNEXPECTED: old checkout has a VERSION" || 
 
 Ожидается:
 - `cat VERSION` печатает новую редакцию (на момент написания этого runbook:
-  `2026-08-25.14`). Используй то, что говорит файл; не зашивай значение ниже.
+  `2026-08-26.5`). Используй то, что говорит файл; не зашивай значение ниже.
 - `kit-version.sh verify` печатает `✓ 24 file(s) match <edition>` и выходит с 0.
   **Набор, который не проходит собственный манифест, не является релизом — распакуй заново и остановись.**
 - `rev-parse HEAD` печатает `71de101…`.
@@ -620,7 +620,11 @@ CODE_OF_CONDUCT и NOTICE. Запиши оба имени в `port-facts.md`.
 Замечание про старую установку: `corp-lint.mjs` из `71de101` зашивал `.qwen/`. Если твой порт
 не `.qwen`, правило каталога агента в старом линте и его лимит в 250 строк на навык проходили
 **вхолостую** на твоей установке. Ожидай, что новый линт сообщит про длину файлов навыков
-ошибки, которых старый никогда не поднимал. Перегенерируй содержимое; никогда не поднимай лимит.
+ошибки, которых старый никогда не поднимал, — но только для навыков `corp-*`: регулярка лимита
+это `<agent-dir>/skills/corp-[^/]+/…`, поэтому собственные навыки порта в том же каталоге
+(на голом `openspec init` два из них длиннее 300 строк) под лимит не попадают: ограничивать
+файл, который этот набор не пишет и не вправе править, значит красить свежую установку в
+красное без разрешённого способа починки. Перегенерируй содержимое навыка `corp-*`; лимит не поднимай.
 
 ### 5.3 Идентификаторы — это контракт
 
@@ -725,10 +729,30 @@ OpenSpec и хуки на каждый репозиторий (`docs/SETUP.md` �
      - <store-id>
    ```
 
-   Без этого блока `openspec show <spec-id> --type spec --store <store-id>` — строка
-   получения, которую `corp-spec` пишет в каждую межрепозиторную дельту — не разрешается, а
-   `check-contract-split-brain.mjs` выходит с 0, ничего не проверив, и вставленная
-   форма контракта остаётся незамеченной;
+   Без этого блока не разрешается ни один маршрут получения — строк, которые `corp-spec`
+   пишет в каждую межрепозиторную дельту, — а `check-contract-split-brain.mjs` выходит с 0,
+   ничего не проверив, и вставленная форма контракта остаётся незамеченной. **Маршрута всегда
+   два**, потому что контракт хранилища мержится ПОСЛЕДНИМ: пока его change открыт, контракт
+   существует только внутри своей change-папки, а архивация удаляет эту папку ровно тогда,
+   когда начинает работать spec-маршрут. Каждая дельта спицы несёт ОБА, с подписями:
+
+   ```text
+   while the contract change is open:
+     <openspec> show <contract-change-id> --type change --store <store-id> --json --deltas-only
+   after the contract change is archived:
+     <openspec> show <contract-spec-id> --type spec --store <store-id>
+   which window am I in: <openspec> list --specs --store <store-id> — the spec id absent means open
+   if the CLI refuses (a broken contract proposal, an unregistered store), read the file:
+     <openspec> instructions specs --change <contract-change-id> --store <store-id> --json  # prints changeDir
+     cat <changeDir>/specs/<contract-spec-id>/spec.md
+   ```
+
+   Измерено на CLI 2026-08-26: до архивации spec-маршрут выходит с 1 и
+   `Spec '<id>' not found at <store>/openspec/specs/<id>/spec.md`, а после архивации
+   change-маршрут выходит с 1 и `Change "<id>" not found`. `--json` обязателен на
+   change-маршруте: без него CLI печатает только proposal.md, молча опускает дельту и всё
+   равно выходит с 0. `openspec context` печатает только spec-рецепт, поэтому в открытом
+   окне ему доверять нельзя;
 6. сгенерируй индекс: `node "$repo/tools/gen-index.mjs"`.
 
 Допиши правило границы записи в файл проектных инструкций, который этап 5 доказал как
@@ -830,14 +854,17 @@ rg -n 'opsx' "<installed-command-dir>" "<installed-skill-dir>" && exit 1 || true
 - **`corp-archive` изменил форму аргументов, размещение, контроль и сообщение коммита.**
   Старое: `Precondition: … you are on updated main` и
   `5. Commit ("archive <change-id>: living spec + ADR + index")`.
-  Новое: `{{args}}` — это `<change-id> [--here | --branch <name>]`, по умолчанию режется
-  `feature/<TICKET>-archive` от подготовленной базы, каждый режим запускает
+  Новое: `{{args}}` — это `<change-id> [--here | --branch <name>]`, по умолчанию режется свежая
+  **без суффикса** `feature/<TICKET>` от подготовленной базы — слияние обычно удалило ветку
+  истории, так что имя свободно. Суффикса нет потому, что `check-git-naming.sh`
+  принимает `^feature/ABCD-1234$` и ничего больше: `feature/ABCD-1234-archive` не проходит
+  pre-push guard, и push отклоняется. Каждый режим запускает
   `assert-archivable`, а сообщение коммита —
   `docs(<TICKET>): archive {{args}} living spec and ADR`. Старая тема
   `archive <id>: …` теперь **отвергается** `check-git-naming.sh`.
 - **`corp-plan` и `corp-spec` теперь коммитят по пути.** `git add <path>`; никогда
   `git add -A`, `git add .` или `git commit -a`.
-- **`corp-test-plan` переписан** (11 → 66 строк) и теперь чёрный ящик: запрос
+- **`corp-test-plan` переписан** (11 → 73 строк) и теперь чёрный ящик: запрос
   или Kafka-событие, которое надо отправить, ожидаемый ответ и ожидаемые строки базы данных на
   dev-стенде — публикуется комментарием в том же тикете, никогда отдельной задачей на тестирование.
 - **`index-all.sh` сменил каталог индекса Zoekt по умолчанию** на
@@ -846,23 +873,30 @@ rg -n 'opsx' "<installed-command-dir>" "<installed-skill-dir>" && exit 1 || true
 
 ---
 
-## Этап 9 — Заполни `docs/testing-stack.md` в каждом репозитории
+## Этап 9 — Поставь `templates/` и заполни `docs/testing-stack.md` в каждом репозитории
 
 Этот файл новый в текущем наборе и не имеет аналога в `71de101`. Он не
 опционален: `corp-tdd` и `corp-debugging` не называют собственного фреймворка — они читают
-этот файл, поэтому пустой файл оставляет оба навыка без стека.
+этот файл, поэтому пустой файл оставляет оба навыка без стека. Тот же цикл ставит шаблоны,
+которые команды называют ПО ПУТИ: `docs/SETUP.md` §5, шаг 4, теперь копирует `adr.md`
+(`corp-archive`), `research.md` и `testing-stack.md` в `templates/` каждого репозитория, а
+`docs/UPGRADE.md`, этап 4a, делает то же при обновлении. Команда, называющая шаблон,
+которого в репозитории нет, — мёртвая инструкция.
 
 ```bash
 git -C "$CORP_SYSTEM_STORE_ROOT" submodule foreach --quiet 'echo "$toplevel/$sm_path"' \
   | while IFS= read -r repo; do
-      mkdir -p "$repo/docs"
+      mkdir -p "$repo/docs" "$repo/templates"
+      install -m 0644 "$CORP_SDD_ROOT/templates/adr.md"           "$repo/templates/"
+      install -m 0644 "$CORP_SDD_ROOT/templates/research.md"      "$repo/templates/"
+      install -m 0644 "$CORP_SDD_ROOT/templates/testing-stack.md" "$repo/templates/"
       test -f "$repo/docs/testing-stack.md" \
         || install -m 0644 "$CORP_SDD_ROOT/templates/testing-stack.md" "$repo/docs/testing-stack.md"
     done
 ```
 
-Ожидается: `docs/testing-stack.md` в каждом репозитории; существующий никогда не
-перезаписывается.
+Ожидается: `adr.md`, `research.md` и `testing-stack.md` в `templates/` каждого репозитория
+и `docs/testing-stack.md` в каждом репозитории; существующий никогда не перезаписывается.
 
 Заполняй каждый **вместе с командой**, из того, что сборка реально запускает — а не из того, что
 команда собирается использовать. В шаблоне четыре раздела, и на каждый надо
@@ -897,6 +931,28 @@ bash "$repo/tools/verify-docs.sh"
 
 ---
 
+## Этап 9b — Дай каждому репозиторию честный `.gitignore`
+
+`docs/SETUP.md` §5, шаг 6b, тоже новый: до первого запуска `.gitignore` каждого
+репозитория должен покрывать вывод сборки, кеши языка (`__pycache__/`, `*.py[cod]`,
+`target/`, `build/`, `node_modules/`) и локальные настройки.
+За основу берётся `system-store-template/.gitignore`. Untracked-файлы не блокируют ни один
+gate, но игнорируемый файл невидим для всех gate И его нельзя случайно закоммитить — именно
+это нужно для файла настроек с паролем.
+
+```bash
+git -C "$CORP_SYSTEM_STORE_ROOT" submodule foreach --quiet 'echo "$toplevel/$sm_path"' \
+  | while IFS= read -r repo; do
+      test -f "$repo/.gitignore" \
+        || install -m 0644 "$CORP_SDD_ROOT/system-store-template/.gitignore" "$repo/.gitignore"
+    done
+```
+
+Ожидается: `.gitignore` в каждом репозитории. Существующий дополняй, а не заменяй, и не
+позволяй этому шагу выбросить правило, на которое команда уже полагается.
+
+---
+
 ## Этап 10 — Почини незавершённые delta spec
 
 Любая папка change, существовавшая до миграции, была написана против старого
@@ -922,6 +978,8 @@ git -C "$CORP_SYSTEM_STORE_ROOT" submodule foreach --quiet 'echo "$toplevel/$sm_
 |---|---|---|
 | lint: `heading "### <x>" (line N) is not a requirement heading` | заголовок `### `, который не `### Requirement:` | Используй `### Requirement: <text>` **дословно**. Upstream пишет только INFO, оставляет `valid: true` и молча **выбрасывает это требование из дельт** — оно никогда не доходит до живой спецификации. Русским может быть только `<text>`. |
 | lint: `requirement "<x>" (line N) sits outside a delta section` | требование выше первой `## ADDED\|MODIFIED\|REMOVED\|RENAMED Requirements` | Перенеси его под секцию дельты. Upstream молча его выбрасывает с `valid=true`; эта ошибка — единственное, что стоит между тобой и потерянным требованием. |
+| lint: `no "## Why" section` (proposal.md) | в proposal нет дословного заголовка `## Why` | Добавь его. Без него change-маршрут, которым читает контракт каждая межрепозиторная спица — `<openspec> show <change-id> --type change --store <store-id> --json --deltas-only` — падает с `{"code":"show_error","message":"Change must have a Why section"}`, а `validate --strict` при этом всё равно сообщает `"valid": true`. Ни один флаг это не обходит. Новая жёсткая ошибка в `corp-lint.mjs` (проверка 4b); старые proposal без неё теперь краснеют. |
+| lint: `no "## What Changes" section` (proposal.md) | в proposal нет дословного заголовка `## What Changes` | Добавь его рядом с `## Why` — схема ждёт пару. Новая жёсткая ошибка в `corp-lint.mjs` (проверка 4b). |
 | CLI: missing delta section / no requirement in a delta section | нет `## ADDED Requirements` и т. п. | Добавь заголовок секции. `DELTA_SECTION` — это `/^##\s+(ADDED\|MODIFIED\|REMOVED\|RENAMED)\s+Requirements\s*$/im`. |
 | CLI: ADDED/MODIFIED requirement with no scenario | под ним нет заголовка четвёртого уровня | Добавь хотя бы один. Годится любой заголовок `####`, включая `#### Сценарий: …`. |
 | lint warning: `requirement "<x>" states no SHALL/MUST` | нет нормативного глагола | Поставь SHALL или MUST в текст требования. |
@@ -1175,7 +1233,7 @@ stash-и не изменились. Держи `$OLD_ROOT` и `$CLONES_DIR`, п�
    прямого чтения здесь. Пересними диф, прежде чем полагаться на любую деталь сверх того, что говорит 8.4.
 9. **Точная система CI.** `docs/SETUP.md` §7 поставляет шаблон на Groovy/Jenkins и помечает
    его TEMPLATE. Адаптируй и прогони дымовой тест; этот runbook не мигрирует CI.
-10. **Редакция набора сдвинулась во время написания этого runbook** (`VERSION` читался как
-    `2026-08-25.13`, затем `2026-08-25.14` через минуты, причём `kit-version.sh check` и
-    `verify` были зелёными на `.14`). Всегда читай `VERSION` на том наборе, который распаковал, а не
+10. **Редакция набора двигается быстро.** Во время написания этого runbook `VERSION`
+    читался как `2026-08-25.13`, затем через минуты `2026-08-25.14`; последняя сверка была
+    против `2026-08-26.5`. Всегда читай `VERSION` на том наборе, который распаковал, а не
     доверяй строке редакции, приведённой здесь.

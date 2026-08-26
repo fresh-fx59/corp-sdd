@@ -1,6 +1,6 @@
 ---
 description: Structured pre-review of a diff before humans spend time (any role)
-corp-version: 2026-08-25.15
+corp-version: 2026-08-26.5
 ---
 Review the diff of {{args}} (branch/PR/change). Follow skill corp-code-review throughout.
 `<change-id>` is the OpenSpec change under review; `<openspec>` is the OpenSpec CLI invocation setup

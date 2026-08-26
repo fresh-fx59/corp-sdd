@@ -1,7 +1,7 @@
 ---
 name: corp-repository-state
 description: Проверка и безопасная подготовка Git-состояния перед любой Corp SDD командой.
-corp-version: 2026-08-25.15
+corp-version: 2026-08-26.5
 ---
 # Состояние репозитория Corp SDD
 

@@ -1,6 +1,6 @@
 ---
 description: Создать delta spec истории; при необходимости разнести её по репозиториям
-corp-version: 2026-08-25.15
+corp-version: 2026-08-26.5
 ---
 Ты готовишь спеку для истории {{args}}. Следуй corp-drill-down и corp-verification.
 `<change-id>` — имя папки изменения OpenSpec; `<openspec>` — вызов CLI OpenSpec, подставленный при
@@ -79,9 +79,11 @@ corp-version: 2026-08-25.15
    Текст требования и заголовки сценариев могут быть русскими: `#### Сценарий: …` допустим,
    выше по потоку считается любой заголовок 4-го уровня. У каждого ADDED и MODIFIED требования
    должен быть хотя бы один сценарий, а в тексте — SHALL или MUST.
-   Выполни `bash "$REPO_ROOT/tools/verify-docs.sh"` до зелёного: правило corp-lint проверяет
-   всё это, поэтому заголовок, который отверг бы openspec, падает здесь, а не при архивации.
-   Затем спроси сам openspec — corp-lint повторяет правила, а CLI ими и является:
+   Выполни `bash "$REPO_ROOT/tools/verify-docs.sh"` до зелёного. corp-lint покрывает только то,
+   чего не видит CLI: требование вне delta-секции, заголовок `### ` не в форме
+   `### Requirement:` рядом с корректным, отсутствие `## Why` / `## What Changes` в proposal.md,
+   плюс SHALL/MUST и наблюдаемость как предупреждения. Правило про сценарии и остальная
+   delta-грамматика принадлежат CLI, поэтому одного зелёного verify-docs НЕ достаточно:
    `<openspec> validate <change-id> --type change --strict --json`. Правь до `"valid": true`;
    никогда не сдавай изменение, которое CLI отвергает.
    Добавь change folder в индекс ПО ПУТИ (`git add openspec/changes/<change-id>`), никогда
@@ -109,7 +111,19 @@ corp-version: 2026-08-25.15
    `<openspec> instructions specs --change <contract-change-id> --json` — до proposal и contract delta.
    Они ложатся в собственный `openspec/changes/<contract-change-id>/` СТОРА: proposal.md,
    contract delta и research.md принадлежат стору, на ветке родительского тикета.
-   Используй `store-contract.md`; форма живёт только здесь. Выполни
+   Используй `store-contract.md`; форма живёт только здесь.
+   В proposal контракта ОБЯЗАН быть буквальный заголовок `## Why` и буквальный `## What Changes`.
+   Это не стиль: без `## Why` строка получения в каждом spoke падает с
+   `{"code":"show_error","message":"Change must have a Why section"}`, при этом
+   `validate --strict` даёт `"valid": true`, `status` и `list` работают, и ни один gate этого
+   набора ничего не замечает. Контракт, который никто не может прочитать, хуже громкой ошибки,
+   поэтому проверь сам до push:
+   ```bash
+   <openspec> show <contract-change-id> --type change --store <store-id> --json --deltas-only
+   ```
+   Должны появиться `"deltaCount"` и текст требования. Отсутствие `## Why` не обходится флагами:
+   `--requirements-only`, `--no-scenarios` и устаревший `change show` падают так же.
+   Выполни
    `bash "$STORE_ROOT/tools/verify-docs.sh"` и
    `<openspec> validate <contract-change-id> --type change --strict --json`; правь, пока оба не
    зелёные и не `"valid": true`. Затем закоммить, отправь, открой PR и верни
@@ -131,8 +145,26 @@ corp-version: 2026-08-25.15
       `<openspec> instructions proposal --change <change-id> --json` и
       `<openspec> instructions specs --change <change-id> --json` — только эти два — до proposal и
       собственной delta spec.
-      Она ссылается на контракт по spec id и store id, но не повторяет форму. Добавь:
-      `<openspec> show <contract-spec-id> --type spec --store <store-id>`.
+      Она ссылается на контракт, но не повторяет форму, и несёт ОБЕ строки получения: маршруты не
+      пересекаются. Контракт стора мержится ПОСЛЕДНИМ, поэтому пока он открыт, он существует только
+      внутри своей change-папки, а архивация удаляет эту папку ровно тогда, когда начинает работать
+      spec-маршрут. Пиши обе строки с подписями и записывай рядом со spec id идентификатор
+      CHANGE контракта: в открытом окне одного spec id недостаточно.
+      ```text
+      контракт: <contract-spec-id> в сторе <store-id> (change <contract-change-id>)
+      пока change контракта открыт:
+        <openspec> show <contract-change-id> --type change --store <store-id> --json --deltas-only
+      после архивации change контракта:
+        <openspec> show <contract-spec-id> --type spec --store <store-id>
+      в каком я окне: <openspec> list --specs --store <store-id> — нет spec id, значит окно открыто
+      если CLI отказывает (сломанный proposal контракта, незарегистрированный стор) — читай файл:
+        <openspec> instructions specs --change <contract-change-id> --store <store-id> --json  # печатает changeDir
+        cat <changeDir>/specs/<contract-spec-id>/spec.md
+      ```
+      `--json` на change-маршруте обязателен: без него CLI печатает только proposal.md, молча
+      теряет delta и всё равно выходит с кодом 0. Никогда не используй здесь
+      `<openspec> change show` или `<openspec> spec show`: у этих форм нет флага `--store`, они
+      резолвятся в самом репозитории.
       В research.md сохраняй указатели. Не создавай design.md и tasks.md.
       Раздели факты тестировщика по владельцу. То, что это изменение ЗАДАЁТ — новый эндпоинт,
       новое поле, новый топик, контракт ошибок — нормативно и живёт в delta-спеке, в тексте

@@ -4,4 +4,4 @@
 |---|---|---|---|---|
 | P1 | agent home + project instruction file | ... | ... | e.g. `.acme/` + `ACME.md`; set `git config corp.agentDir .acme` |
 ... (P2–P8)
-Re-probe on every port or OpenSpec upgrade before rollout. See `docs/SETUP.md` stage 1.
+Re-probe on every port or OpenSpec upgrade before rollout. See `docs/SETUP.md` stage 2.

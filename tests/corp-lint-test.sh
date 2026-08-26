@@ -99,10 +99,10 @@ else
 fi
 
 echo "L7 the agent home is discovered, not hard-coded"
-A="$(mktemp -d)"; mkdir -p "$A/.acme/skills" "$A/openspec" "$A/docs"
-awk 'BEGIN { for (i = 0; i < 300; i++) print "line" }' > "$A/.acme/skills/big.md"
+A="$(mktemp -d)"; mkdir -p "$A/.acme/skills/corp-big" "$A/openspec" "$A/docs"
+awk 'BEGIN { for (i = 0; i < 300; i++) print "line" }' > "$A/.acme/skills/corp-big/SKILL.md"
 out=$(node "$LINT" "$A" 2>&1); rc=$?
-if [ "$rc" -eq 1 ] && grep -q ".acme/skills/big.md" <<<"$out" && grep -q "hard cap 250" <<<"$out"; then
+if [ "$rc" -eq 1 ] && grep -q ".acme/skills/corp-big/SKILL.md" <<<"$out" && grep -q "hard cap 250" <<<"$out"; then
   ok "capped skills under a discovered agent home"
 else
   no "did not lint the discovered agent home (rc=$rc)" "$out"
@@ -153,6 +153,48 @@ else
   no "still re-implementing the openspec parser (rc=$rc)" "$out"
 fi
 rm -rf "$D"
+
+echo "L11 the skill cap applies to corp-* skills only, not to the port's own"
+V="$(mktemp -d)"; mkdir -p "$V/.acme/skills/corp-tdd" "$V/.acme/skills/openspec-proposal" "$V/openspec" "$V/docs"
+awk 'BEGIN { for (i = 0; i < 320; i++) print "line" }' > "$V/.acme/skills/openspec-proposal/SKILL.md"
+printf 'short\n' > "$V/.acme/skills/corp-tdd/SKILL.md"
+out=$(node "$LINT" "$V" 2>&1); rc=$?
+if [ "$rc" -eq 0 ]; then
+  ok "a vendor skill this kit does not own is not capped"
+else
+  no "capped a skill the kit neither writes nor may edit (rc=$rc)" "$out"
+fi
+awk 'BEGIN { for (i = 0; i < 320; i++) print "line" }' > "$V/.acme/skills/corp-tdd/SKILL.md"
+out=$(node "$LINT" "$V" 2>&1); rc=$?
+if [ "$rc" -eq 1 ] && grep -q "corp-tdd/SKILL.md" <<<"$out"; then
+  ok "our own oversized skill is still capped"
+else
+  no "the cap stopped applying to our own skills (rc=$rc)" "$out"
+fi
+rm -rf "$V"
+
+echo "L12 a proposal without ## Why is caught here, not by openspec"
+P="$(mktemp -d)"; mkdir -p "$P/openspec/changes/c1/specs/cap" "$P/docs"
+cat > "$P/openspec/changes/c1/specs/cap/spec.md" <<'EOF'
+## ADDED Requirements
+### Requirement: X
+The service SHALL expose GET /x and return 200.
+
+#### Scenario: ok
+- WHEN x
+- THEN 200
+EOF
+printf 'prose only, no headings\n' > "$P/openspec/changes/c1/proposal.md"
+out=$(node "$LINT" "$P" 2>&1); rc=$?
+if [ "$rc" -eq 1 ] && grep -q 'no "## Why" section' <<<"$out" && grep -q 'no "## What Changes" section' <<<"$out"; then
+  ok "an unreadable proposal fails before it reaches another repository"
+else
+  no "a proposal openspec show cannot parse was accepted (rc=$rc)" "$out"
+fi
+printf '## Why\nbecause\n\n## What Changes\n- x\n' > "$P/openspec/changes/c1/proposal.md"
+out=$(node "$LINT" "$P" 2>&1); rc=$?
+if [ "$rc" -eq 0 ]; then ok "both headings present passes"; else no "a valid proposal was rejected (rc=$rc)" "$out"; fi
+rm -rf "$P"
 
 echo
 echo "PASS=$PASS FAIL=$FAIL"
