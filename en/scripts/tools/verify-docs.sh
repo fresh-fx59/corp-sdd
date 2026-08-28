@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # corp-version: 2026-08-26.8
 # verify-docs.sh — the disposer entry point. One code path, four triggers:
-# agent post-write self-check / lefthook pre-commit / on demand / Jenkins backstop.
+# agent post-write self-check / lefthook pre-commit / on demand / CI backstop.
 set -uo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd -P)"
 REPO_ROOT="$(git -C "$SCRIPT_DIR" rev-parse --show-toplevel 2>/dev/null || true)"
