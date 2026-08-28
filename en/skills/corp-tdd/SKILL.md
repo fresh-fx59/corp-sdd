@@ -1,7 +1,7 @@
 ---
 name: corp-tdd
 description: Tiered test-driven development against the repository's own testing stack. Use for ALL implementation work.
-corp-version: 2026-08-26.7
+corp-version: 2026-08-26.8
 ---
 ## Iron law
 No production code without a failing test first. No exceptions for "trivial" changes — trivial

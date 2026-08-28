@@ -1,6 +1,6 @@
 ---
 description: Implement the current change task-by-task under TDD discipline (dev flow)
-corp-version: 2026-08-26.7
+corp-version: 2026-08-26.8
 ---
 Implement change {{args}}.
 `{{args}}` is the `<change-id>`; `<openspec>` is the OpenSpec CLI invocation setup resolved.

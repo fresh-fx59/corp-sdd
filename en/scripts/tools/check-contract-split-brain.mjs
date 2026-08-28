@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// corp-version: 2026-08-26.7
+// corp-version: 2026-08-26.8
 // check-contract-split-brain.mjs — the split-brain lint. Zero dependencies.
 //
 // Rule (design §"one spec-truth"): a cross-repo contract fact lives in exactly ONE place — the

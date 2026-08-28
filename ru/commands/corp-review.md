@@ -1,6 +1,6 @@
 ---
 description: Структурированное предварительное ревью diff до ревью человеком
-corp-version: 2026-08-26.7
+corp-version: 2026-08-26.8
 ---
 `<change-id>` — проверяемое изменение OpenSpec; `<openspec>` — вызов CLI OpenSpec, подставленный
 при установке.

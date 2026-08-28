@@ -1,7 +1,7 @@
 ---
 name: corp-code-review
 description: Giving and receiving review on agent-written diffs. Use for corp-review runs and when responding to review feedback.
-corp-version: 2026-08-26.7
+corp-version: 2026-08-26.8
 ---
 `<openspec>` is the OpenSpec CLI invocation setup resolved; `<change-id>` is the change under review.
 

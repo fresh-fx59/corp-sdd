@@ -41,7 +41,6 @@ Placeholders you must resolve before starting, and keep resolved throughout:
 ```bash
 git --version        # >= 2.13 — `submodule add -b` needs it
 node --version       # >= 18   — runs the .mjs disposers
-rg --version         # used by the stage-8 placeholder proof
 lefthook version
 npx @fission-ai/openspec@<pinned-version> --version
 ```
@@ -826,8 +825,8 @@ A fresh command file ships **unresolved** placeholders. Replace every `<openspec
 token in the installed copies with the invocation you proved in stage 6. Then gate it:
 
 ```bash
-rg -n '<openspec>' "<installed-command-dir>" && exit 1 || true
-rg -n '<openspec>' "<installed-skill-dir>"   && exit 1 || true
+grep -rn '<openspec>' "<installed-command-dir>" && exit 1 || true
+grep -rn '<openspec>' "<installed-skill-dir>"   && exit 1 || true
 ```
 
 Expected: no matches. A non-empty result means the migration left a command that
@@ -842,7 +841,7 @@ Also prove the old vocabulary is gone. `71de101`'s `corp-archive` says:
 and `corp-spec` step 3 says "via the opsx workflow". Neither string may survive:
 
 ```bash
-rg -n 'opsx' "<installed-command-dir>" "<installed-skill-dir>" && exit 1 || true
+grep -rn 'opsx' "<installed-command-dir>" "<installed-skill-dir>" && exit 1 || true
 ```
 
 Expected: no matches.
@@ -1102,12 +1101,12 @@ one clean `submodule status` line per repository; `aggregate-index --strict` exi
 
 ```bash
 # 6. no token, no old vocabulary, no old script
-rg -n '<openspec>' "<installed-command-dir>" "<installed-skill-dir>"; echo "rc=$?"
-rg -n 'opsx' "<installed-command-dir>" "<installed-skill-dir>"; echo "rc=$?"
+grep -rn '<openspec>' "<installed-command-dir>" "<installed-skill-dir>"; echo "rc=$?"
+grep -rn 'opsx' "<installed-command-dir>" "<installed-skill-dir>"; echo "rc=$?"
 find "$CORP_SYSTEM_STORE_ROOT" -name sync-repos.sh
 find "$CORP_SYSTEM_STORE_ROOT" -name repos.json
 ```
-Expected: `rc=1` (no matches) for both `rg` calls; no output from either `find`.
+Expected: `rc=1` (no matches) for both `grep` calls; no output from either `find`.
 
 ```bash
 # 7. syntax
@@ -1157,7 +1156,7 @@ settings, credential and scratch files. Record every commit SHA in the handover.
       repositories named with the failing gate and its output;
 - [ ] `corp.agentDir` set in every repository and echoed back;
 - [ ] the `<openspec>` token resolved, all six CLI calls proven and recorded in
-      `port-facts.md`, `rg` finds neither `<openspec>` nor `opsx`;
+      `port-facts.md`, `grep` finds neither `<openspec>` nor `opsx`;
 - [ ] `port-facts.md` is filled in: no P-row still holds `...`, the header names the real port,
       version and probe date, and `corp-lint.mjs` is green on the store;
 - [ ] every repository has an `openspec/adr/` directory with a `.gitkeep`;

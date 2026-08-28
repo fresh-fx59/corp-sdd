@@ -1,6 +1,6 @@
 ---
 description: Generate autotest skeletons from an approved delta spec's scenarios (SDET flow)
-corp-version: 2026-08-26.7
+corp-version: 2026-08-26.8
 ---
 Generate autotest skeletons for change {{args}} in the team's framework (ask which if unknown).
 0. Set `REPO_ROOT="$(git rev-parse --show-toplevel)"`. Run

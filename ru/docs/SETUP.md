@@ -13,7 +13,6 @@
 ```bash
 git --version        # >= 2.13, нужен `submodule --branch`
 node --version       # >= 18, на нём работают .mjs-проверки
-rg --version         # нужен для проверки плейсхолдеров на этапе 6
 lefthook version     # ставится из разрешённого внутреннего источника
 ```
 
@@ -348,7 +347,7 @@ frontmatter и токен `{{args}}`, если это требуется.
 `instructions apply`, `corp-review` — `validate` и `status`, `corp-archive` — `archive`.
 
 ```bash
-rg -n '<openspec>' "<installed-command-dir>" && exit 1 || true
+grep -rn '<openspec>' "<installed-command-dir>" && exit 1 || true
 ```
 
 Если навыки не поддерживаются, вставьте их тела сейчас и докажите отсутствие

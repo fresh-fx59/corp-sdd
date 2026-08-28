@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# corp-version: 2026-08-26.7
+# corp-version: 2026-08-26.8
 # verify-docs.sh — the disposer entry point. One code path, four triggers:
 # agent post-write self-check / lefthook pre-commit / on demand / Jenkins backstop.
 set -uo pipefail

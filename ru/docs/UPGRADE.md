@@ -218,7 +218,7 @@ frontmatter и токен `{{args}}`, ровно как при установк�
 `corp-review` — `validate` и `status`, `corp-archive` — `archive`.
 
 ```bash
-rg -n '<openspec>' "<installed-command-dir>" && exit 1 || true
+grep -rn '<openspec>' "<installed-command-dir>" && exit 1 || true
 ```
 
 Это и есть проверка: непустой вывод означает, что обновление оставило команду,
@@ -347,7 +347,7 @@ Git-репозиторий, поэтому держите предыдущий �
       pristine новой редакции;
 - [ ] по каждому файлу MODIFIED или UNSTAMPED записано решение «оставить или
       заменить» и назван тот, кто его принял;
-- [ ] команды и навыки переустановлены, `rg` доказывает, что плейсхолдеров
+- [ ] команды и навыки переустановлены, `grep` доказывает, что плейсхолдеров
       `<openspec>` не осталось;
 - [ ] `port-facts.md`, `project-repositories.json`, `.gitmodules` и все деревья
       `openspec/` обновлением не изменены;

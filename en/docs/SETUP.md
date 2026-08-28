@@ -13,7 +13,6 @@ half-populated store:
 ```bash
 git --version        # >= 2.13, for `submodule --branch`
 node --version       # >= 18, runs the .mjs disposers
-rg --version         # used by the stage-6 placeholder proof
 lefthook version     # install through the approved internal channel first
 ```
 
@@ -348,7 +347,7 @@ during `corp-spec`, `instructions design`/`instructions tasks` during `corp-plan
 and `archive` during `corp-archive`.
 
 ```bash
-rg -n '<openspec>' "<installed-command-dir>" && exit 1 || true
+grep -rn '<openspec>' "<installed-command-dir>" && exit 1 || true
 ```
 
 If skills are unsupported, inline their bodies now and prove no unavailable skill

@@ -216,7 +216,7 @@ replace every `<openspec>` token with the resolved CLI invocation recorded in
 `instructions apply`, `corp-review` `validate` and `status`, `corp-archive` `archive`.
 
 ```bash
-rg -n '<openspec>' "<installed-command-dir>" && exit 1 || true
+grep -rn '<openspec>' "<installed-command-dir>" && exit 1 || true
 ```
 
 That proof is the gate: a non-empty result means the upgrade left a command
@@ -340,7 +340,7 @@ Close the upgrade only when every line holds:
       new edition;
 - [ ] every MODIFIED or UNSTAMPED file has a recorded keep-or-replace decision
       and a named decider;
-- [ ] commands and skills reinstalled, `rg` proves no `<openspec>` token left;
+- [ ] commands and skills reinstalled, `grep` proves no `<openspec>` token left;
 - [ ] `port-facts.md`, `project-repositories.json`, `.gitmodules` and every
       `openspec/` tree unchanged by the upgrade;
 - [ ] SETUP stage 8 negative tests re-run and red where they must be red;

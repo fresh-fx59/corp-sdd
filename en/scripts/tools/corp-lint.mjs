@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// corp-version: 2026-08-26.7
+// corp-version: 2026-08-26.8
 // corp-lint.mjs — deterministic disposer for agent-written docs. Zero dependencies.
 // Scope: openspec/, docs/, and the agent home of whatever CLI this port runs
 // (never lints build output or source code docs). The agent home is NEVER hard-coded:

@@ -1,6 +1,6 @@
 ---
 description: Post-merge close-out — fold the delta into living specs, ADR, index (dev flow)
-corp-version: 2026-08-26.7
+corp-version: 2026-08-26.8
 ---
 Archive change {{args}}. Follow skill corp-verification (evidence for every step below).
 `{{args}}` is `<change-id> [--here | --branch <name>]`. The flag chooses WHERE the archive

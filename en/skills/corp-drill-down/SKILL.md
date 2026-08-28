@@ -1,7 +1,7 @@
 ---
 name: corp-drill-down
 description: How to gather system knowledge — catalog to repo to live code. Use whenever work needs facts about ANY capability, module, or contract.
-corp-version: 2026-08-26.7
+corp-version: 2026-08-26.8
 ---
 ## Trust order (absolute)
 live code > repo living spec > repo index > central catalog > wiki. Each level may only ROUTE you

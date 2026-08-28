@@ -41,7 +41,6 @@
 ```bash
 git --version        # >= 2.13 — `submodule add -b` needs it
 node --version       # >= 18   — runs the .mjs disposers
-rg --version         # used by the stage-8 placeholder proof
 lefthook version
 npx @fission-ai/openspec@<pinned-version> --version
 ```
@@ -826,8 +825,8 @@ install -m 0644 "$CORP_SDD_ROOT/templates/store-contract.md" "$CORP_SYSTEM_STORE
 `<openspec>` в установленных копиях на вызов, который ты доказал на этапе 6. Затем поставь контроль:
 
 ```bash
-rg -n '<openspec>' "<installed-command-dir>" && exit 1 || true
-rg -n '<openspec>' "<installed-skill-dir>"   && exit 1 || true
+grep -rn '<openspec>' "<installed-command-dir>" && exit 1 || true
+grep -rn '<openspec>' "<installed-skill-dir>"   && exit 1 || true
 ```
 
 Ожидается: совпадений нет. Непустой результат значит, что миграция оставила команду,
@@ -842,7 +841,7 @@ rg -n '<openspec>' "<installed-skill-dir>"   && exit 1 || true
 а шаг 3 `corp-spec` говорит «via the opsx workflow». Ни одна из этих строк не должна уцелеть:
 
 ```bash
-rg -n 'opsx' "<installed-command-dir>" "<installed-skill-dir>" && exit 1 || true
+grep -rn 'opsx' "<installed-command-dir>" "<installed-skill-dir>" && exit 1 || true
 ```
 
 Ожидается: совпадений нет.
@@ -1102,12 +1101,12 @@ node "$CORP_SYSTEM_STORE_ROOT/tools/aggregate-index.mjs" --strict "$CORP_SYSTEM_
 
 ```bash
 # 6. no token, no old vocabulary, no old script
-rg -n '<openspec>' "<installed-command-dir>" "<installed-skill-dir>"; echo "rc=$?"
-rg -n 'opsx' "<installed-command-dir>" "<installed-skill-dir>"; echo "rc=$?"
+grep -rn '<openspec>' "<installed-command-dir>" "<installed-skill-dir>"; echo "rc=$?"
+grep -rn 'opsx' "<installed-command-dir>" "<installed-skill-dir>"; echo "rc=$?"
 find "$CORP_SYSTEM_STORE_ROOT" -name sync-repos.sh
 find "$CORP_SYSTEM_STORE_ROOT" -name repos.json
 ```
-Ожидается: `rc=1` (совпадений нет) для обоих вызовов `rg`; ни один `find` ничего не печатает.
+Ожидается: `rc=1` (совпадений нет) для обоих вызовов `grep`; ни один `find` ничего не печатает.
 
 ```bash
 # 7. syntax
@@ -1157,7 +1156,7 @@ git -C "$CORP_SYSTEM_STORE_ROOT" commit -m "chore(<TICKET>): adopt clones as sub
       репозитории названы с провалившимся контролем и его выводом;
 - [ ] `corp.agentDir` задан в каждом репозитории и повторён в ответ;
 - [ ] токен `<openspec>` разрешён, все шесть CLI-вызовов доказаны и записаны в
-      `port-facts.md`, `rg` не находит ни `<openspec>`, ни `opsx`;
+      `port-facts.md`, `grep` не находит ни `<openspec>`, ни `opsx`;
 - [ ] `port-facts.md` заполнен: ни в одной P-строке не осталось `...`, в заголовке указаны реальные
       имя порта, версия и дата опроса, и `corp-lint.mjs` зелёный на хранилище;
 - [ ] в каждом репозитории есть каталог `openspec/adr/` с файлом `.gitkeep`;

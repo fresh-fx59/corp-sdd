@@ -1,6 +1,6 @@
 ---
 description: Превратить сценарии утверждённой delta spec в black-box интеграционный test plan для QA на стенде разработки
-corp-version: 2026-08-26.7
+corp-version: 2026-08-26.8
 ---
 Создай black-box интеграционный test plan для {{args}}.
 

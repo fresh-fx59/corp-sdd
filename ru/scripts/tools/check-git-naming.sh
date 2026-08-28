@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# corp-version: 2026-08-26.7
+# corp-version: 2026-08-26.8
 # check-git-naming.sh — enforce the org's branch and commit-message conventions.
 #
 #   branch          feature/ABCD-1234
