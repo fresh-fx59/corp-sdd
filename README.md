@@ -5,31 +5,51 @@ OpenSpec lifecycle commands with deterministic repository, branch, documentation
 contract checks. The kit's own scripts ship with zero npm dependencies, for restricted
 networks — but it drives the OpenSpec CLI, and that is installed from npm.
 
-## What it costs to run
+## Quick start: the agent installs it
 
-This is a kit you install, not a binary you drop in. Before the workflow works:
-
-| Needs | Why |
-|---|---|
-| `git` >= 2.13 | `submodule --branch` |
-| `node` >= 18 | runs the `.mjs` checks |
-| `lefthook` | the pre-commit hooks |
-| `@fission-ai/openspec` (npm) | the spec engine the commands drive |
-| An agent CLI | Claude Code, Codex, or your corporate agent |
-
-The npm package name matters: the bare `openspec` on the public registry is an
-unrelated empty `0.0.0` placeholder. Installation is a staged runbook, not one
-command — [`en/docs/SETUP.md`](en/docs/SETUP.md).
-
-## See one part of it work first (git only)
-
-One script does not need any of the above, so you can judge the approach in a
-minute before committing to the install. `repository-state.sh` is the
-deterministic gate that opens every command in this kit:
+You do not install this kit by hand. `en/docs/SETUP.md` is written as a task **for
+an agent** — staged, with a gate at every step and a hard rule never to delete,
+reset, clean, rebase or force-checkout anything it finds. You clone the repo and
+hand that file to your agent.
 
 ```bash
 git clone https://github.com/fresh-fx59/corp-sdd.git
 cd corp-sdd
+```
+
+Then, in Claude Code, Codex, or your corporate agent CLI, from that directory:
+
+```text
+Read en/docs/SETUP.md and execute it as your task. Stop at every failed gate and
+show me the output. Do not skip stage 0.
+```
+
+Have these ready — stage 0 asks for them and stops if they are missing:
+
+| Input | Example |
+|---|---|
+| Project id | `PROJ` |
+| Agent port name | the agent CLI you run, and its config dir |
+| Pinned OpenSpec version | for `@fission-ai/openspec` |
+| System-store remote URL | an empty Git repository you own |
+| Approved base branch | `develop` or `main` |
+
+And this toolchain — stage 0 proves each one before it writes anything:
+`git` >= 2.13, `node` >= 18, `lefthook`, and `npx @fission-ai/openspec@<pinned>`.
+The bare `openspec` name on the public registry is an unrelated empty `0.0.0`
+placeholder, so the scoped name matters. `ctags` + Zoekt are optional; without
+them you lose code search and nothing else.
+
+The kit's own scripts have **zero npm dependencies**, which is the point on a
+restricted network — but OpenSpec itself comes from npm and must be mirrored.
+
+## Kick the tyres before installing anything
+
+If you want to see the approach work before you give an agent a runbook, one
+script needs nothing but `git` and `awk`. `repository-state.sh` is the
+deterministic gate that opens every command in this kit:
+
+```bash
 bash en/scripts/tools/repository-state.sh inspect
 ```
 
@@ -47,8 +67,7 @@ behind=0
 ```
 
 Run it inside any repository you already have. It measures the state an agent is
-about to work in instead of assuming it, and it never resets, cleans, rebases or
-deletes anything — it reports, and it refuses:
+about to work in instead of assuming it, and it reports rather than repairs:
 
 ```bash
 bash en/scripts/tools/repository-state.sh assert-change ABCD-1234
@@ -63,7 +82,7 @@ bash en/scripts/tools/repository-state.sh assert-change ABCD-1234
 
 Exit code 1. On a bare clone that refusal is expected and correct — nothing is
 installed yet, so no spec may be written. That is the whole idea: the rules you
-were hoping the model would remember are checks that run.
+were hoping the model would remember become checks that run.
 
 That is one of eleven scripts, around seven commands and six agent skills that
 wrap [OpenSpec](https://github.com/Fission-AI/OpenSpec). The full flow, which
