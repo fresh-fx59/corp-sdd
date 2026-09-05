@@ -1,21 +1,37 @@
 # Corporate SDD with AI agents
 
-A self-contained starter kit for spec-driven development across corporate repositories.
-It combines OpenSpec lifecycle commands with deterministic repository, branch, documentation,
-and contract checks.
+A starter kit for spec-driven development across corporate repositories. It combines
+OpenSpec lifecycle commands with deterministic repository, branch, documentation and
+contract checks. The kit's own scripts ship with zero npm dependencies, for restricted
+networks — but it drives the OpenSpec CLI, and that is installed from npm.
 
-## Try it in 60 seconds
+## What it costs to run
 
-No install, no npm, no config. Clone it and run the gate that opens every command in
-this kit — inside this repository, or inside any Git repository you already have.
+This is a kit you install, not a binary you drop in. Before the workflow works:
+
+| Needs | Why |
+|---|---|
+| `git` >= 2.13 | `submodule --branch` |
+| `node` >= 18 | runs the `.mjs` checks |
+| `lefthook` | the pre-commit hooks |
+| `@fission-ai/openspec` (npm) | the spec engine the commands drive |
+| An agent CLI | Claude Code, Codex, or your corporate agent |
+
+The npm package name matters: the bare `openspec` on the public registry is an
+unrelated empty `0.0.0` placeholder. Installation is a staged runbook, not one
+command — [`en/docs/SETUP.md`](en/docs/SETUP.md).
+
+## See one part of it work first (git only)
+
+One script does not need any of the above, so you can judge the approach in a
+minute before committing to the install. `repository-state.sh` is the
+deterministic gate that opens every command in this kit:
 
 ```bash
 git clone https://github.com/fresh-fx59/corp-sdd.git
 cd corp-sdd
 bash en/scripts/tools/repository-state.sh inspect
 ```
-
-Output:
 
 ```text
 repo=/home/you/corp-sdd
@@ -30,9 +46,9 @@ ahead=0
 behind=0
 ```
 
-That is the deterministic part of the workflow: before an agent writes a single spec or
-line of code, the state it is about to work in is measured, not assumed. Ask the same
-script to authorize work on a ticket and it refuses with the reason and the fix:
+Run it inside any repository you already have. It measures the state an agent is
+about to work in instead of assuming it, and it never resets, cleans, rebases or
+deletes anything — it reports, and it refuses:
 
 ```bash
 bash en/scripts/tools/repository-state.sh assert-change ABCD-1234
@@ -43,17 +59,15 @@ bash en/scripts/tools/repository-state.sh assert-change ABCD-1234
   ↳ resolved root: NONE
   ↳ every spec written here would land there instead — openspec walks up past .git
   ↳ onboard this repository (SETUP stage 5: openspec init, then check-openspec-root.sh)
---- repository state ---
-...
 ```
 
-Exit code 1. It never resets, cleans, rebases or deletes anything — it reports and refuses.
+Exit code 1. On a bare clone that refusal is expected and correct — nothing is
+installed yet, so no spec may be written. That is the whole idea: the rules you
+were hoping the model would remember are checks that run.
 
-That is one of eleven scripts. The kit adds seven commands and six agent skills around
-[OpenSpec](https://github.com/Fission-AI/OpenSpec) so that the rules you were hoping the
-model would remember become checks that run. Install it for real with
-[`en/docs/SETUP.md`](en/docs/SETUP.md); see the whole flow in
-[`en/docs/FLOW.md`](en/docs/FLOW.md).
+That is one of eleven scripts, around seven commands and six agent skills that
+wrap [OpenSpec](https://github.com/Fission-AI/OpenSpec). The full flow, which
+installs nothing to read: [`en/docs/FLOW.md`](en/docs/FLOW.md).
 
 ## Start here
 
