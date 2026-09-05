@@ -4,6 +4,57 @@ A self-contained starter kit for spec-driven development across corporate reposi
 It combines OpenSpec lifecycle commands with deterministic repository, branch, documentation,
 and contract checks.
 
+## Try it in 60 seconds
+
+No install, no npm, no config. Clone it and run the gate that opens every command in
+this kit — inside this repository, or inside any Git repository you already have.
+
+```bash
+git clone https://github.com/fresh-fx59/corp-sdd.git
+cd corp-sdd
+bash en/scripts/tools/repository-state.sh inspect
+```
+
+Output:
+
+```text
+repo=/home/you/corp-sdd
+openspec_root=NONE
+expected_base=main
+branch=main
+upstream=origin/main
+dirty=0
+untracked=0
+stash_count=0
+ahead=0
+behind=0
+```
+
+That is the deterministic part of the workflow: before an agent writes a single spec or
+line of code, the state it is about to work in is measured, not assumed. Ask the same
+script to authorize work on a ticket and it refuses with the reason and the fix:
+
+```bash
+bash en/scripts/tools/repository-state.sh assert-change ABCD-1234
+```
+
+```text
+✗ OpenSpec root is not this repository
+  ↳ resolved root: NONE
+  ↳ every spec written here would land there instead — openspec walks up past .git
+  ↳ onboard this repository (SETUP stage 5: openspec init, then check-openspec-root.sh)
+--- repository state ---
+...
+```
+
+Exit code 1. It never resets, cleans, rebases or deletes anything — it reports and refuses.
+
+That is one of eleven scripts. The kit adds seven commands and six agent skills around
+[OpenSpec](https://github.com/Fission-AI/OpenSpec) so that the rules you were hoping the
+model would remember become checks that run. Install it for real with
+[`en/docs/SETUP.md`](en/docs/SETUP.md); see the whole flow in
+[`en/docs/FLOW.md`](en/docs/FLOW.md).
+
 ## Start here
 
 | Language | Installation | Upgrade | Daily operations |
